@@ -53,6 +53,7 @@ export function Step3_MovesetMatrix({
           facing,
           frontDataUrl: turnaroundAngles?.south,
           eastDataUrl: turnaroundAngles?.east,
+          northDataUrl: turnaroundAngles?.north,
         }),
       });
 

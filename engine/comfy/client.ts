@@ -2,6 +2,15 @@
  * ComfyUI Client for Sprite Forge targeting DGX Spark cluster.
  */
 
+export interface OutputImageResult {
+  nodeId: string;
+  filename: string;
+  subfolder?: string;
+  type?: string;
+  dataUrl: string;
+  buffer: Buffer;
+}
+
 export async function uploadBase64Image(
   dataUrl: string,
   name = `init_${Date.now()}.png`,
@@ -83,4 +92,37 @@ export async function fetchOutputImage(
   if (!res.ok) throw new Error(`[comfy] /view failed: ${res.status}`);
   const arrayBuf = await res.arrayBuffer();
   return Buffer.from(arrayBuf);
+}
+
+export async function fetchAllOutputImages(
+  history: any,
+  comfyUrl: string
+): Promise<OutputImageResult[]> {
+  const results: OutputImageResult[] = [];
+  if (!history || !history.outputs) return results;
+
+  for (const [nodeId, outputData] of Object.entries<any>(history.outputs)) {
+    if (outputData && Array.isArray(outputData.images)) {
+      for (const imgMeta of outputData.images) {
+        if (imgMeta && imgMeta.filename) {
+          try {
+            const buf = await fetchOutputImage(imgMeta, comfyUrl);
+            const base64 = buf.toString("base64");
+            results.push({
+              nodeId,
+              filename: imgMeta.filename,
+              subfolder: imgMeta.subfolder,
+              type: imgMeta.type,
+              dataUrl: `data:image/png;base64,${base64}`,
+              buffer: buf,
+            });
+          } catch (err) {
+            console.error(`[comfy] failed to fetch image ${imgMeta.filename} from node ${nodeId}:`, err);
+          }
+        }
+      }
+    }
+  }
+
+  return results;
 }

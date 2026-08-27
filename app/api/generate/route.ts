@@ -6,7 +6,13 @@ import {
   buildMultiViewTurnaroundGraph,
   buildMultiRefMovesetGraph,
 } from "@/engine/comfy/graphs";
-import { fetchOutputImage, queuePrompt, uploadBase64Image, waitForPrompt } from "@/engine/comfy/client";
+import {
+  fetchAllOutputImages,
+  fetchOutputImage,
+  queuePrompt,
+  uploadBase64Image,
+  waitForPrompt,
+} from "@/engine/comfy/client";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +30,7 @@ export async function POST(req: Request) {
       frontDataUrl,
       eastDataUrl,
       northDataUrl,
+      cameraOffset = 0,
       denoise = 0.65,
       seed,
     } = body;
@@ -41,6 +48,8 @@ export async function POST(req: Request) {
 
     let frontUploaded: string | undefined;
     let eastUploaded: string | undefined;
+    let northUploaded: string | undefined;
+
     if (frontDataUrl) {
       frontUploaded = await uploadBase64Image(
         frontDataUrl,
@@ -55,6 +64,13 @@ export async function POST(req: Request) {
         comfyUrl
       );
     }
+    if (northDataUrl) {
+      northUploaded = await uploadBase64Image(
+        northDataUrl,
+        `north_${character}_${Date.now()}.png`,
+        comfyUrl
+      );
+    }
 
     let graph: Record<string, any>;
     if (mode === "multiview_turnaround") {
@@ -63,6 +79,7 @@ export async function POST(req: Request) {
         engine,
         character,
         seed,
+        cameraOffset,
       });
     } else if (mode === "turnaround") {
       graph = buildTurnaroundGraph({
@@ -79,6 +96,7 @@ export async function POST(req: Request) {
         facing,
         frontImage: frontUploaded,
         sideImage: eastUploaded,
+        backImage: northUploaded,
         seed,
       });
     } else {
@@ -90,6 +108,33 @@ export async function POST(req: Request) {
 
     const promptId = await queuePrompt(graph, comfyUrl);
     const history = await waitForPrompt(promptId, comfyUrl, 120000, 1000);
+
+    if (mode === "multiview_turnaround") {
+      const allOutputs = await fetchAllOutputImages(history, comfyUrl);
+      if (allOutputs.length === 0) {
+        return NextResponse.json({ ok: false, error: "No multi-view images generated" }, { status: 500 });
+      }
+
+      const frontImg = allOutputs.find((o) => o.filename.includes("front") || o.nodeId === "save_front");
+      const eastImg = allOutputs.find((o) => o.filename.includes("east") || o.nodeId === "save_east");
+      const northImg = allOutputs.find((o) => o.filename.includes("north") || o.nodeId === "save_north");
+      const sheetImg = allOutputs.find((o) => o.filename.includes("sheet") || o.nodeId === "save_sheet");
+
+      const frontUrl = frontImg?.dataUrl || allOutputs[0]?.dataUrl;
+      const eastUrl = eastImg?.dataUrl || (allOutputs.length > 1 ? allOutputs[1]?.dataUrl : allOutputs[0]?.dataUrl);
+      const northUrl = northImg?.dataUrl || (allOutputs.length > 2 ? allOutputs[2]?.dataUrl : allOutputs[0]?.dataUrl);
+      const sheetUrl = sheetImg?.dataUrl || (allOutputs.length > 3 ? allOutputs[3]?.dataUrl : allOutputs[0]?.dataUrl);
+
+      return NextResponse.json({
+        ok: true,
+        promptId,
+        frontUrl,
+        eastUrl,
+        northUrl,
+        sheetUrl,
+        imageDataUrl: sheetUrl || frontUrl,
+      });
+    }
 
     const outputs = Object.values(history.outputs ?? {}) as any[];
     const firstOutput = outputs[0];

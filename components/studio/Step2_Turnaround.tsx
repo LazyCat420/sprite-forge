@@ -23,10 +23,12 @@ export function Step2_Turnaround({
   const [generationError, setGenerationError] = useState<string | null>(null);
 
   const [engine, setEngine] = useState<"sv3d" | "zero123">("sv3d");
+  const [cameraOffset, setCameraOffset] = useState<number>(0);
   const [eDataUrl, setEDataUrl] = useState<string | null>(null);
   const [nDataUrl, setNDataUrl] = useState<string | null>(null);
+  const [sheetDataUrl, setSheetDataUrl] = useState<string | null>(null);
 
-  // Single-pass 3D Multi-View Orbit Generator
+  // Single-pass 3D Multi-View Orbit Generator (SV3D / Zero123++)
   const handleGenerateMultiView = async () => {
     if (!masterRefDataUrl) return;
     setIsGenerating(true);
@@ -41,6 +43,7 @@ export function Step2_Turnaround({
           engine,
           character,
           initImageDataUrl: masterRefDataUrl,
+          cameraOffset,
         }),
       });
 
@@ -49,15 +52,15 @@ export function Step2_Turnaround({
         throw new Error(data.error || "Multi-View generation failed on DGX Spark");
       }
 
-      if (data.imageDataUrl) {
-        setEDataUrl(data.imageDataUrl);
-        setNDataUrl(data.imageDataUrl);
-        onSetTurnaroundAngles?.({
-          south: masterRefDataUrl,
-          east: data.imageDataUrl,
-          north: data.imageDataUrl,
-        });
-      }
+      if (data.eastUrl) setEDataUrl(data.eastUrl);
+      if (data.northUrl) setNDataUrl(data.northUrl);
+      if (data.sheetUrl) setSheetDataUrl(data.sheetUrl);
+
+      onSetTurnaroundAngles?.({
+        south: data.frontUrl || masterRefDataUrl,
+        east: data.eastUrl || data.imageDataUrl,
+        north: data.northUrl || data.imageDataUrl,
+      });
     } catch (err: any) {
       console.error(err);
       setGenerationError(err.message || String(err));
@@ -66,7 +69,7 @@ export function Step2_Turnaround({
     }
   };
 
-  // Per-Angle generation
+  // Per-Angle fallback generation
   const handleGenerateSingleAngle = async (facing: "E" | "N") => {
     if (!masterRefDataUrl) return;
     setGenerationError(null);
@@ -91,8 +94,22 @@ export function Step2_Turnaround({
       }
 
       if (data.imageDataUrl) {
-        if (facing === "E") setEDataUrl(data.imageDataUrl);
-        if (facing === "N") setNDataUrl(data.imageDataUrl);
+        if (facing === "E") {
+          setEDataUrl(data.imageDataUrl);
+          onSetTurnaroundAngles?.({
+            south: masterRefDataUrl,
+            east: data.imageDataUrl,
+            north: nDataUrl || masterRefDataUrl,
+          });
+        }
+        if (facing === "N") {
+          setNDataUrl(data.imageDataUrl);
+          onSetTurnaroundAngles?.({
+            south: masterRefDataUrl,
+            east: eDataUrl || masterRefDataUrl,
+            north: data.imageDataUrl,
+          });
+        }
       }
     } catch (err: any) {
       console.error(err);
@@ -110,7 +127,7 @@ export function Step2_Turnaround({
           Step 2: 3-Facing Turnaround Generation (S, E, N)
         </h2>
         <p style={{ fontSize: 13, color: "#8b949e", margin: 0 }}>
-          Generates canonical East ($90^\circ$ Side Profile) and North ($180^\circ$ Back Facing) views with locked 3D geometry, proportion consistency, and ground baseline ($y=44$).
+          Generates canonical East (90° Side Profile) and North (180° Back Facing) views with locked 3D geometry, proportion consistency, and ground baseline (y=44).
         </p>
       </div>
 
@@ -158,13 +175,14 @@ export function Step2_Turnaround({
               alignItems: "center",
               justifyContent: "center",
               position: "relative",
+              overflow: "hidden",
             }}
           >
             {masterRefDataUrl ? (
               <img
                 src={masterRefDataUrl}
                 alt="S Facing Master Reference"
-                style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", imageRendering: "pixelated" }}
+                style={{ width: "100%", height: "100%", objectFit: "contain", imageRendering: "pixelated" }}
               />
             ) : (
               <div style={{ width: 48, height: 80, background: "#3fb950", borderRadius: 2 }} />
@@ -210,6 +228,7 @@ export function Step2_Turnaround({
               alignItems: "center",
               justifyContent: "center",
               position: "relative",
+              overflow: "hidden",
             }}
           >
             {isGeneratingE ? (
@@ -220,7 +239,7 @@ export function Step2_Turnaround({
               <img
                 src={eDataUrl}
                 alt="E Facing"
-                style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", imageRendering: "pixelated" }}
+                style={{ width: "100%", height: "100%", objectFit: "contain", imageRendering: "pixelated" }}
               />
             ) : (
               <div style={{ width: 38, height: 80, background: "#21262d", borderRadius: 2 }} />
@@ -280,6 +299,7 @@ export function Step2_Turnaround({
               alignItems: "center",
               justifyContent: "center",
               position: "relative",
+              overflow: "hidden",
             }}
           >
             {isGeneratingN ? (
@@ -290,7 +310,7 @@ export function Step2_Turnaround({
               <img
                 src={nDataUrl}
                 alt="N Facing"
-                style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", imageRendering: "pixelated" }}
+                style={{ width: "100%", height: "100%", objectFit: "contain", imageRendering: "pixelated" }}
               />
             ) : (
               <div style={{ width: 46, height: 80, background: "#21262d", borderRadius: 2 }} />
@@ -338,13 +358,13 @@ export function Step2_Turnaround({
           gap: 14,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
           <div>
             <div style={{ fontWeight: 600, fontSize: 14, color: "#f0f6fc" }}>
               3D Consistency Multi-View Generator
             </div>
             <div style={{ fontSize: 12, color: "#8b949e", marginTop: 2 }}>
-              Extracts Front, Profile, and Back angles in a single 3D orbital pass.
+              Extracts Front (0°), Profile (90°), and Back (180°) in a single orbital pass.
             </div>
           </div>
 
@@ -381,6 +401,21 @@ export function Step2_Turnaround({
               Zero123++ (6-View)
             </button>
           </div>
+
+          {/* Camera Extraction Angle Slider */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#0d1117", padding: "6px 12px", borderRadius: 6, border: "1px solid #30363d" }}>
+            <span style={{ fontSize: 12, color: "#8b949e" }}>Camera Nudge:</span>
+            <input
+              type="range"
+              min="-15"
+              max="15"
+              step="1"
+              value={cameraOffset}
+              onChange={(e) => setCameraOffset(Number(e.target.value))}
+              style={{ width: 80, cursor: "pointer" }}
+            />
+            <span style={{ fontSize: 11, color: "#58a6ff", minWidth: 28 }}>{cameraOffset > 0 ? `+${cameraOffset}°` : `${cameraOffset}°`}</span>
+          </div>
         </div>
 
         <button
@@ -400,6 +435,30 @@ export function Step2_Turnaround({
           {isGenerating ? "⚡ Generating 3D Multi-View Pass…" : "⚡ Generate 3D Multi-View Turnaround"}
         </button>
       </div>
+
+      {/* Composite Contact Sheet Strip (if available) */}
+      {sheetDataUrl && (
+        <div
+          style={{
+            background: "#161b22",
+            border: "1px solid #30363d",
+            borderRadius: 8,
+            padding: "12px 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#8b949e" }}>
+            3D Multi-View Turnaround Contact Strip:
+          </span>
+          <img
+            src={sheetDataUrl}
+            alt="MultiView Sheet Preview"
+            style={{ maxHeight: 48, borderRadius: 4, border: "1px solid #30363d", imageRendering: "pixelated" }}
+          />
+        </div>
+      )}
 
       {/* Navigation Footer */}
       <div style={{ display: "flex", justifyContent: "space-between" }}>
