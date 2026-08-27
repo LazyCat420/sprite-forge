@@ -1,5 +1,6 @@
 /**
- * API-format graph builders for Sprite Forge targeting ComfyUI on DGX Spark.
+ * DGX Spark ComfyUI API Graph Builders for Sprite Forge.
+ * Matched to exact models installed on Gold Spark & MSI Spark (128GB unified memory).
  */
 
 export interface ConceptGraphOpts {
@@ -14,30 +15,49 @@ export interface ConceptGraphOpts {
 
 export function buildConceptGraph({
   prompt,
-  negativePrompt = "blurry, photorealistic, noise, 3d render, watermark, extra limbs, dark background, cast shadow",
+  negativePrompt = "blurry, photorealistic, noise, dark background, cast shadow, extra limbs, deformed",
   seed = Math.floor(Math.random() * 1e9),
   width = 512,
   height = 768,
-  steps = 20,
-  cfg = 7.0,
+  steps = 8,
+  cfg = 2.0,
 }: ConceptGraphOpts): Record<string, any> {
   return {
     "1": {
-      class_type: "KSampler",
+      class_type: "UNETLoader",
       inputs: {
-        cfg,
-        denoise: 1,
-        latent_image: ["2", 0],
-        model: ["4", 0],
-        negative: ["6", 0],
-        positive: ["5", 0],
-        sampler_name: "euler",
-        scheduler: "normal",
-        seed,
-        steps,
+        unet_name: "krea2_turbo_fp8_scaled.safetensors",
+        weight_dtype: "default",
       },
     },
     "2": {
+      class_type: "CLIPLoader",
+      inputs: {
+        clip_name: "qwen3vl_4b_fp8_scaled.safetensors",
+        type: "krea2",
+      },
+    },
+    "3": {
+      class_type: "VAELoader",
+      inputs: {
+        vae_name: "qwen_image_vae.safetensors",
+      },
+    },
+    "4": {
+      class_type: "CLIPTextEncode",
+      inputs: {
+        clip: ["2", 0],
+        text: prompt + ", pixel art style, solid flat green chroma background, clean silhouette, centered full body sprite",
+      },
+    },
+    "5": {
+      class_type: "CLIPTextEncode",
+      inputs: {
+        clip: ["2", 0],
+        text: negativePrompt,
+      },
+    },
+    "6": {
       class_type: "EmptyLatentImage",
       inputs: {
         batch_size: 1,
@@ -45,108 +65,128 @@ export function buildConceptGraph({
         width,
       },
     },
-    "4": {
-      class_type: "CheckpointLoaderSimple",
-      inputs: {
-        ckpt_name: "v1-5-pruned-emaonly.safetensors",
-      },
-    },
-    "5": {
-      class_type: "CLIPTextEncode",
-      inputs: {
-        clip: ["4", 1],
-        text: prompt + ", pixel art style, flat solid background, clear silhouette, centered full body sprite",
-      },
-    },
-    "6": {
-      class_type: "CLIPTextEncode",
-      inputs: {
-        clip: ["4", 1],
-        text: negativePrompt,
-      },
-    },
     "7": {
-      class_type: "VAEDecode",
+      class_type: "KSampler",
       inputs: {
-        samples: ["1", 0],
-        vae: ["4", 2],
+        cfg,
+        denoise: 1.0,
+        latent_image: ["6", 0],
+        model: ["1", 0],
+        negative: ["5", 0],
+        positive: ["4", 0],
+        sampler_name: "euler",
+        scheduler: "normal",
+        seed,
+        steps,
       },
     },
     "8": {
+      class_type: "VAEDecode",
+      inputs: {
+        samples: ["7", 0],
+        vae: ["3", 0],
+      },
+    },
+    "9": {
       class_type: "SaveImage",
       inputs: {
         filename_prefix: "spriteforge/concept",
-        images: ["7", 0],
+        images: ["8", 0],
       },
     },
   };
 }
 
 export interface TurnaroundGraphOpts {
-  image: string;
+  image?: string;
   facing: "S" | "E" | "N";
   character: string;
   seed?: number;
 }
 
 export function buildTurnaroundGraph({
-  image,
   facing,
   character,
   seed = Math.floor(Math.random() * 1e9),
 }: TurnaroundGraphOpts): Record<string, any> {
   const facingText =
-    facing === "E" ? "side profile facing right" : facing === "N" ? "back view facing away from camera" : "front facing toward camera";
+    facing === "E"
+      ? "side profile facing right"
+      : facing === "N"
+        ? "back view facing away from camera"
+        : "front facing toward camera";
 
   return {
     "1": {
-      class_type: "LoadImage",
-      inputs: { image },
+      class_type: "UNETLoader",
+      inputs: {
+        unet_name: "krea2_turbo_fp8_scaled.safetensors",
+        weight_dtype: "default",
+      },
     },
     "2": {
-      class_type: "CheckpointLoaderSimple",
-      inputs: { ckpt_name: "v1-5-pruned-emaonly.safetensors" },
+      class_type: "CLIPLoader",
+      inputs: {
+        clip_name: "qwen3vl_4b_fp8_scaled.safetensors",
+        type: "krea2",
+      },
     },
     "3": {
-      class_type: "CLIPTextEncode",
+      class_type: "VAELoader",
       inputs: {
-        clip: ["2", 1],
-        text: `pixel art sprite of ${character}, ${facingText}, matching reference style, same proportions, flat background`,
+        vae_name: "qwen_image_vae.safetensors",
       },
     },
     "4": {
       class_type: "CLIPTextEncode",
       inputs: {
-        clip: ["2", 1],
-        text: "blurry, photorealistic, noise, extra limbs, dark background, cast shadow",
+        clip: ["2", 0],
+        text: `pixel art sprite of ${character}, ${facingText}, matching palette and silhouette, solid flat green chroma background, centered full body`,
       },
     },
     "5": {
-      class_type: "VAEEncode",
-      inputs: { pixels: ["1", 0], vae: ["2", 2] },
+      class_type: "CLIPTextEncode",
+      inputs: {
+        clip: ["2", 0],
+        text: "blurry, photorealistic, noise, dark background, cast shadow",
+      },
     },
     "6": {
-      class_type: "KSampler",
+      class_type: "EmptyLatentImage",
       inputs: {
-        cfg: 7.0,
-        denoise: 0.65,
-        latent_image: ["5", 0],
-        model: ["2", 0],
-        negative: ["4", 0],
-        positive: ["3", 0],
-        sampler_name: "euler",
-        scheduler: "normal",
-        seed,
-        steps: 20,
+        batch_size: 1,
+        height: 768,
+        width: 512,
       },
     },
     "7": {
-      class_type: "VAEDecode",
-      inputs: { samples: ["6", 0], vae: ["2", 2] },
+      class_type: "KSampler",
+      inputs: {
+        cfg: 2.0,
+        denoise: 1.0,
+        latent_image: ["6", 0],
+        model: ["1", 0],
+        negative: ["5", 0],
+        positive: ["4", 0],
+        sampler_name: "euler",
+        scheduler: "normal",
+        seed,
+        steps: 8,
+      },
     },
     "8": {
+      class_type: "VAEDecode",
+      inputs: {
+        samples: ["7", 0],
+        vae: ["3", 0],
+      },
+    },
+    "9": {
       class_type: "SaveImage",
-      inputs: { filename_prefix: `spriteforge/turnaround_${facing}`, images: ["7", 0] },
+      inputs: {
+        filename_prefix: `spriteforge/turnaround_${facing}`,
+        images: ["8", 0],
+      },
     },
   };
 }
