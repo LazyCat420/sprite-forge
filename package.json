@@ -1,0 +1,24 @@
+{
+  "name": "sprite-forge",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 5176",
+    "build": "next build",
+    "start": "next start -p 5176",
+    "test": "vitest run",
+    "deploy": "bash deploy.sh"
+  },
+  "dependencies": {
+    "next": "^16.1.6",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "@types/react": "^19.2.17",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.0"
+  }
+}
