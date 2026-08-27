@@ -10,14 +10,50 @@ export interface Step2TurnaroundProps {
 
 export function Step2_Turnaround({ character, onAdvance, onBack }: Step2TurnaroundProps) {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [facingsReady, setFacingsReady] = useState(true);
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
-  const handleGenerateTurnaround = () => {
+  const [sDataUrl, setSDataUrl] = useState<string | null>(null);
+  const [eDataUrl, setEDataUrl] = useState<string | null>(null);
+  const [nDataUrl, setNDataUrl] = useState<string | null>(null);
+
+  const handleGenerateTurnaround = async () => {
     setIsGenerating(true);
-    setTimeout(() => {
+    setGenerationError(null);
+
+    try {
+      // Dispatches E and N turnaround jobs
+      const [resE, resN] = await Promise.all([
+        fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: "turnaround",
+            character,
+            facing: "E",
+          }),
+        }),
+        fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: "turnaround",
+            character,
+            facing: "N",
+          }),
+        }),
+      ]);
+
+      const dataE = await resE.json();
+      const dataN = await resN.json();
+
+      if (dataE.ok && dataE.imageDataUrl) setEDataUrl(dataE.imageDataUrl);
+      if (dataN.ok && dataN.imageDataUrl) setNDataUrl(dataN.imageDataUrl);
+    } catch (err: any) {
+      console.error(err);
+      setGenerationError(err.message || String(err));
+    } finally {
       setIsGenerating(false);
-      setFacingsReady(true);
-    }, 1500);
+    }
   };
 
   return (
@@ -30,6 +66,21 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
           Pinball Knight and 2.5D games require 3 core facings: South (Front), East (Side), and North (Back). Generate the turnaround angles and verify scale and ground line consistency.
         </p>
       </div>
+
+      {generationError && (
+        <div
+          style={{
+            background: "rgba(248, 81, 73, 0.15)",
+            border: "1px solid #f85149",
+            color: "#ff7b72",
+            padding: "8px 12px",
+            borderRadius: 6,
+            fontSize: 12,
+          }}
+        >
+          ⚠️ {generationError}
+        </div>
+      )}
 
       {/* 3 Facings Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
@@ -62,8 +113,15 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
               position: "relative",
             }}
           >
-            <div style={{ width: 48, height: 80, background: "#3fb950", borderRadius: 2 }} />
-            {/* Ground Line Guide */}
+            {sDataUrl ? (
+              <img
+                src={sDataUrl}
+                alt="S Facing"
+                style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", imageRendering: "pixelated" }}
+              />
+            ) : (
+              <div style={{ width: 48, height: 80, background: "#3fb950", borderRadius: 2 }} />
+            )}
             <div
               style={{
                 position: "absolute",
@@ -99,7 +157,7 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
               width: 96,
               height: 144,
               background: "#0d1117",
-              border: "1px solid #238636",
+              border: `1px solid ${eDataUrl ? "#238636" : "#30363d"}`,
               borderRadius: 4,
               display: "flex",
               alignItems: "center",
@@ -107,8 +165,15 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
               position: "relative",
             }}
           >
-            <div style={{ width: 38, height: 80, background: "#3fb950", borderRadius: 2 }} />
-            {/* Ground Line Guide */}
+            {eDataUrl ? (
+              <img
+                src={eDataUrl}
+                alt="E Facing"
+                style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", imageRendering: "pixelated" }}
+              />
+            ) : (
+              <div style={{ width: 38, height: 80, background: "#21262d", borderRadius: 2 }} />
+            )}
             <div
               style={{
                 position: "absolute",
@@ -120,7 +185,9 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
               }}
             />
           </div>
-          <span style={{ fontSize: 11, color: "#8fdd9f" }}>✓ Aligned (y=44)</span>
+          <span style={{ fontSize: 11, color: eDataUrl ? "#8fdd9f" : "#8b949e" }}>
+            {eDataUrl ? "✓ Aligned (y=44)" : "Pending Render"}
+          </span>
         </div>
 
         {/* Facing N (Back Facing) */}
@@ -144,7 +211,7 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
               width: 96,
               height: 144,
               background: "#0d1117",
-              border: "1px solid #238636",
+              border: `1px solid ${nDataUrl ? "#238636" : "#30363d"}`,
               borderRadius: 4,
               display: "flex",
               alignItems: "center",
@@ -152,8 +219,15 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
               position: "relative",
             }}
           >
-            <div style={{ width: 46, height: 80, background: "#3fb950", borderRadius: 2 }} />
-            {/* Ground Line Guide */}
+            {nDataUrl ? (
+              <img
+                src={nDataUrl}
+                alt="N Facing"
+                style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", imageRendering: "pixelated" }}
+              />
+            ) : (
+              <div style={{ width: 46, height: 80, background: "#21262d", borderRadius: 2 }} />
+            )}
             <div
               style={{
                 position: "absolute",
@@ -165,7 +239,9 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
               }}
             />
           </div>
-          <span style={{ fontSize: 11, color: "#8fdd9f" }}>✓ Aligned (y=44)</span>
+          <span style={{ fontSize: 11, color: nDataUrl ? "#8fdd9f" : "#8b949e" }}>
+            {nDataUrl ? "✓ Aligned (y=44)" : "Pending Render"}
+          </span>
         </div>
       </div>
 
@@ -179,6 +255,8 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          flexWrap: "wrap",
+          gap: 12,
         }}
       >
         <div>
@@ -186,7 +264,7 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
             Turnaround Batch Generator
           </div>
           <div style={{ fontSize: 12, color: "#8b949e" }}>
-            Renders missing E and N angles on DGX Spark and automatically computes silhouette drift.
+            Renders missing E and N angles across Gold Spark and MSI Spark queues.
           </div>
         </div>
 
@@ -194,16 +272,16 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
           onClick={handleGenerateTurnaround}
           disabled={isGenerating}
           style={{
-            background: "#238636",
-            border: "1px solid #2ea043",
+            background: isGenerating ? "#1f6feb" : "#238636",
+            border: `1px solid ${isGenerating ? "#388bfd" : "#2ea043"}`,
             color: "#fff",
             borderRadius: 6,
             padding: "8px 16px",
             fontWeight: 600,
-            cursor: "pointer",
+            cursor: isGenerating ? "wait" : "pointer",
           }}
         >
-          {isGenerating ? "⚡ Generating Turnaround…" : "⚡ Re-Generate Missing Angles"}
+          {isGenerating ? "⚡ Generating Turnaround Angles…" : "⚡ Generate Missing Angles (E + N)"}
         </button>
       </div>
 
