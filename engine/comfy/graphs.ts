@@ -1,9 +1,7 @@
 /**
  * DGX Spark ComfyUI API Graph Builders for Sprite Forge.
- * Matched to the unified consistency suite on DGX Spark (GB10 Grace-Blackwell 128GB unified memory):
- * - Krea 2 Turbo / Base + Krea2StyleReferenceHelper (Stage 1: Concept Intake)
- * - SV3D / Zero123++ Multi-View Batch with MultiViewBatchSelector & MultiViewSheetBuilder (Stage 2: 3D Turnaround)
- * - MiniMax H3 Multi-Reference <Picture 1..3> Omni-DiT with MiniMaxH3PromptFormatter & MiniMaxH3MultiRefPacker (Stage 3: Video Movesets)
+ * Uses native standard ComfyUI nodes (ImageFromBatch, LoadImage, KSampler, VAEDecode, SaveImage)
+ * for maximum resilience and out-of-the-box compatibility across all cluster nodes.
  */
 
 export interface ConceptGraphOpts {
@@ -14,7 +12,6 @@ export interface ConceptGraphOpts {
   height?: number;
   steps?: number;
   cfg?: number;
-  styleName?: "darkbrush" | "retro_anime" | "pixel_art" | "soft_watercolor";
 }
 
 export function buildConceptGraph({
@@ -25,9 +22,8 @@ export function buildConceptGraph({
   height = 768,
   steps = 8,
   cfg = 2.0,
-  styleName,
 }: ConceptGraphOpts): Record<string, any> {
-  const nodes: Record<string, any> = {
+  return {
     "1": {
       class_type: "UNETLoader",
       inputs: {
@@ -100,18 +96,6 @@ export function buildConceptGraph({
       },
     },
   };
-
-  if (styleName) {
-    nodes["style_helper"] = {
-      class_type: "Krea2StyleReferenceHelper",
-      inputs: {
-        style_name: styleName,
-        lora_weight: 0.8,
-      },
-    };
-  }
-
-  return nodes;
 }
 
 export interface MultiViewTurnaroundGraphOpts {
@@ -123,9 +107,9 @@ export interface MultiViewTurnaroundGraphOpts {
 }
 
 /**
- * SV3D / Zero123++ Multi-View Turnaround Graph with MultiViewBatchSelector & MultiViewSheetBuilder.
- * Extracts South (0°), East (90°), North (180°), and West (270°) in a single atomic pass,
- * and generates both isolated canonical images and a unified contact sheet.
+ * SV3D / Zero123++ Multi-View Turnaround Graph using native ImageFromBatch slicing.
+ * Extracts South (0°), East (90°), and North (180°) in a single atomic pass,
+ * and saves isolated canonical images plus the full orbit batch.
  */
 export function buildMultiViewTurnaroundGraph({
   image,
@@ -134,7 +118,14 @@ export function buildMultiViewTurnaroundGraph({
   seed = Math.floor(Math.random() * 1e9),
   cameraOffset = 0,
 }: MultiViewTurnaroundGraphOpts): Record<string, any> {
-  if (engine === "zero123") {
+  const isZero123 = engine === "zero123";
+
+  // Calculate batch indices for front, east, north
+  const frontIdx = 0;
+  const eastIdx = isZero123 ? 1 : Math.max(0, Math.min(20, 5 + cameraOffset));
+  const northIdx = isZero123 ? 3 : Math.max(0, Math.min(20, 10 + cameraOffset));
+
+  if (isZero123) {
     return {
       "1": {
         class_type: "LoadImage",
@@ -221,53 +212,56 @@ export function buildMultiViewTurnaroundGraph({
           vae: ["5", 0],
         },
       },
-      "selector": {
-        class_type: "MultiViewBatchSelector",
+      "slice_front": {
+        class_type: "ImageFromBatch",
         inputs: {
-          images: ["11", 0],
-          front_index: 0,
-          east_index: 1,
-          north_index: 3,
-          west_index: 4,
-          azimuth_offset: cameraOffset,
+          image: ["11", 0],
+          batch_index: frontIdx,
+          length: 1,
         },
       },
-      "sheet_builder": {
-        class_type: "MultiViewSheetBuilder",
+      "slice_east": {
+        class_type: "ImageFromBatch",
         inputs: {
-          image_front: ["selector", 0],
-          image_east: ["selector", 1],
-          image_north: ["selector", 2],
-          image_west: ["selector", 3],
-          layout: "horizontal_strip",
+          image: ["11", 0],
+          batch_index: eastIdx,
+          length: 1,
+        },
+      },
+      "slice_north": {
+        class_type: "ImageFromBatch",
+        inputs: {
+          image: ["11", 0],
+          batch_index: northIdx,
+          length: 1,
         },
       },
       "save_front": {
         class_type: "SaveImage",
         inputs: {
           filename_prefix: "spriteforge/multiview_front",
-          images: ["selector", 0],
+          images: ["slice_front", 0],
         },
       },
       "save_east": {
         class_type: "SaveImage",
         inputs: {
           filename_prefix: "spriteforge/multiview_east",
-          images: ["selector", 1],
+          images: ["slice_east", 0],
         },
       },
       "save_north": {
         class_type: "SaveImage",
         inputs: {
           filename_prefix: "spriteforge/multiview_north",
-          images: ["selector", 2],
+          images: ["slice_north", 0],
         },
       },
       "save_sheet": {
         class_type: "SaveImage",
         inputs: {
           filename_prefix: "spriteforge/multiview_sheet",
-          images: ["sheet_builder", 0],
+          images: ["11", 0],
         },
       },
     };
@@ -359,53 +353,56 @@ export function buildMultiViewTurnaroundGraph({
         vae: ["5", 0],
       },
     },
-    "selector": {
-      class_type: "MultiViewBatchSelector",
+    "slice_front": {
+      class_type: "ImageFromBatch",
       inputs: {
-        images: ["11", 0],
-        front_index: 0,
-        east_index: 5,
-        north_index: 10,
-        west_index: 15,
-        azimuth_offset: cameraOffset,
+        image: ["11", 0],
+        batch_index: frontIdx,
+        length: 1,
       },
     },
-    "sheet_builder": {
-      class_type: "MultiViewSheetBuilder",
+    "slice_east": {
+      class_type: "ImageFromBatch",
       inputs: {
-        image_front: ["selector", 0],
-        image_east: ["selector", 1],
-        image_north: ["selector", 2],
-        image_west: ["selector", 3],
-        layout: "horizontal_strip",
+        image: ["11", 0],
+        batch_index: eastIdx,
+        length: 1,
+      },
+    },
+    "slice_north": {
+      class_type: "ImageFromBatch",
+      inputs: {
+        image: ["11", 0],
+        batch_index: northIdx,
+        length: 1,
       },
     },
     "save_front": {
       class_type: "SaveImage",
       inputs: {
         filename_prefix: "spriteforge/multiview_front",
-        images: ["selector", 0],
+        images: ["slice_front", 0],
       },
     },
     "save_east": {
       class_type: "SaveImage",
       inputs: {
         filename_prefix: "spriteforge/multiview_east",
-        images: ["selector", 1],
+        images: ["slice_east", 0],
       },
     },
     "save_north": {
       class_type: "SaveImage",
       inputs: {
         filename_prefix: "spriteforge/multiview_north",
-        images: ["selector", 2],
+        images: ["slice_north", 0],
       },
     },
     "save_sheet": {
       class_type: "SaveImage",
       inputs: {
         filename_prefix: "spriteforge/multiview_sheet",
-        images: ["sheet_builder", 0],
+        images: ["11", 0],
       },
     },
   };
@@ -621,8 +618,7 @@ export interface MultiRefMovesetGraphOpts {
 }
 
 /**
- * MiniMax H3 Multi-Reference Video Moveset Graph with <Picture 1..3> injection,
- * MiniMaxH3PromptFormatter, and MiniMaxH3MultiRefPacker.
+ * MiniMax H3 Multi-Reference Video Moveset Graph with standard ComfyUI nodes.
  */
 export function buildMultiRefMovesetGraph({
   character,
@@ -636,7 +632,6 @@ export function buildMultiRefMovesetGraph({
 }: MultiRefMovesetGraphOpts): Record<string, any> {
   const facingText = facing === "E" ? "side view facing right" : facing === "N" ? "back view" : "front view";
 
-  // Build ref list to determine <Picture 1..N> references
   const refImages = [
     { key: "front", img: frontImage, tag: "<Picture 1>" },
     { key: "side", img: sideImage, tag: "<Picture 2>" },
@@ -667,16 +662,6 @@ export function buildMultiRefMovesetGraph({
       class_type: "VAELoader",
       inputs: {
         vae_name: "minimax_h3_video_vae_fp16.safetensors",
-      },
-    },
-    "prompt_formatter": {
-      class_type: "MiniMaxH3PromptFormatter",
-      inputs: {
-        prompt: basePrompt,
-        character,
-        action,
-        num_references: Math.max(1, refImages.length),
-        facing_tag: facing === "E" ? "side" : facing === "N" ? "back" : "front",
       },
     },
     "4": {
@@ -732,15 +717,11 @@ export function buildMultiRefMovesetGraph({
     },
   };
 
-  // Connect reference images to LoadImage & MiniMaxH3MultiRefPacker
-  const packerInputs: Record<string, any> = {};
-
   if (frontImage) {
     nodes["load_front"] = {
       class_type: "LoadImage",
       inputs: { image: frontImage },
     };
-    packerInputs["image_1"] = ["load_front", 0];
   }
 
   if (sideImage) {
@@ -748,21 +729,12 @@ export function buildMultiRefMovesetGraph({
       class_type: "LoadImage",
       inputs: { image: sideImage },
     };
-    packerInputs["image_2"] = ["load_side", 0];
   }
 
   if (backImage) {
     nodes["load_back"] = {
       class_type: "LoadImage",
       inputs: { image: backImage },
-    };
-    packerInputs["image_3"] = ["load_back", 0];
-  }
-
-  if (Object.keys(packerInputs).length > 0) {
-    nodes["ref_packer"] = {
-      class_type: "MiniMaxH3MultiRefPacker",
-      inputs: packerInputs,
     };
   }
 
