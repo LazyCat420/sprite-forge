@@ -2,8 +2,9 @@
  * DGX Spark ComfyUI API Graph Builders for Sprite Forge.
  * Matched to exact models installed on Gold Spark & MSI Spark (128GB unified memory).
  * 
- * NOTE: Audio generation is 100% skipped/omitted across all pipelines to maximize
- * VRAM headroom, minimize latency, and generate clean pixel sprite frames without audio overhead.
+ * NOTE: Turnarounds use ReferenceLatent cross-attention conditioning from the Step 1
+ * Master Reference image while sampling from a fresh latent (denoise: 1.0), enabling true
+ * 3D 90-degree side profile and 180-degree back view rotations while locking identity & palette.
  */
 
 export interface ConceptGraphOpts {
@@ -113,16 +114,23 @@ export function buildTurnaroundGraph({
   facing,
   character,
   seed = Math.floor(Math.random() * 1e9),
-  denoise = 0.65,
 }: TurnaroundGraphOpts): Record<string, any> {
-  const facingText =
-    facing === "E"
-      ? "side profile facing right"
-      : facing === "N"
-        ? "back view facing away from camera"
-        : "front facing toward camera";
+  const isEast = facing === "E";
+  const isNorth = facing === "N";
 
-  // If init image is provided, use Img2Img VAEEncode conditioning to preserve exact character identity
+  const positivePrompt = isEast
+    ? `pixel art sprite of the same ${character}, 90 degree side profile facing right, side view of armor helmet and weapon, matching reference palette and details, solid flat green chroma background, centered`
+    : isNorth
+      ? `pixel art sprite of the same ${character}, seen from behind, 180 degree back facing away from camera, rear view of armor and helmet, matching reference palette and details, solid flat green chroma background, centered`
+      : `pixel art sprite of the same ${character}, front view facing camera, solid flat green chroma background, centered`;
+
+  const negativePrompt = isEast
+    ? "front view, facing camera, back view, blurry, photorealistic, noise, dark background, cast shadow, deformed"
+    : isNorth
+      ? "face, eyes, visor, front view, facing camera, blurry, photorealistic, noise, dark background, cast shadow"
+      : "blurry, photorealistic, noise, dark background, cast shadow";
+
+  // If init reference image is provided, use ReferenceLatent cross-attention conditioning
   if (image) {
     return {
       "1": {
@@ -160,49 +168,64 @@ export function buildTurnaroundGraph({
         class_type: "CLIPTextEncode",
         inputs: {
           clip: ["3", 0],
-          text: `pixel art sprite turnaround of ${character}, turned to ${facingText}, exact same armor, helmet, colors, and proportions as reference image, solid flat green chroma background, centered`,
+          text: positivePrompt,
         },
       },
       "7": {
-        class_type: "CLIPTextEncode",
+        class_type: "ReferenceLatent",
         inputs: {
-          clip: ["3", 0],
-          text: "blurry, photorealistic, noise, dark background, cast shadow, deformed, extra limbs",
+          conditioning: ["6", 0],
+          latent: ["5", 0],
         },
       },
       "8": {
+        class_type: "CLIPTextEncode",
+        inputs: {
+          clip: ["3", 0],
+          text: negativePrompt,
+        },
+      },
+      "9": {
+        class_type: "EmptyLatentImage",
+        inputs: {
+          batch_size: 1,
+          height: 768,
+          width: 512,
+        },
+      },
+      "10": {
         class_type: "KSampler",
         inputs: {
-          cfg: 2.0,
-          denoise,
-          latent_image: ["5", 0],
+          cfg: 2.5,
+          denoise: 1.0,
+          latent_image: ["9", 0],
           model: ["2", 0],
-          negative: ["7", 0],
-          positive: ["6", 0],
+          negative: ["8", 0],
+          positive: ["7", 0],
           sampler_name: "euler",
           scheduler: "normal",
           seed,
           steps: 8,
         },
       },
-      "9": {
+      "11": {
         class_type: "VAEDecode",
         inputs: {
-          samples: ["8", 0],
+          samples: ["10", 0],
           vae: ["4", 0],
         },
       },
-      "10": {
+      "12": {
         class_type: "SaveImage",
         inputs: {
           filename_prefix: `spriteforge/turnaround_${facing}`,
-          images: ["9", 0],
+          images: ["11", 0],
         },
       },
     };
   }
 
-  // Fallback if no init image
+  // Fallback if no reference image
   return {
     "1": {
       class_type: "UNETLoader",
@@ -228,14 +251,14 @@ export function buildTurnaroundGraph({
       class_type: "CLIPTextEncode",
       inputs: {
         clip: ["2", 0],
-        text: `pixel art sprite of ${character}, ${facingText}, matching palette and silhouette, solid flat green chroma background, centered full body`,
+        text: positivePrompt,
       },
     },
     "5": {
       class_type: "CLIPTextEncode",
       inputs: {
         clip: ["2", 0],
-        text: "blurry, photorealistic, noise, dark background, cast shadow",
+        text: negativePrompt,
       },
     },
     "6": {
