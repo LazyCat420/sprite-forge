@@ -1,7 +1,10 @@
 /**
  * DGX Spark ComfyUI API Graph Builders for Sprite Forge.
- * Uses native standard ComfyUI nodes (ImageFromBatch, LoadImage, KSampler, VAEDecode, SaveImage)
- * for maximum resilience and out-of-the-box compatibility across all cluster nodes.
+ * Matched to the active Grace-Blackwell GB10 ComfyUI server models:
+ * - Krea 2 Turbo (UNETLoader: krea2_turbo_fp8_scaled.safetensors)
+ * - MiniMax H3 Multi-View Turnaround Omni-DiT (UNETLoader: minimax_h3_ref2va_pruned_int8_convrot.safetensors)
+ * - MiniMax H3 Multi-Reference Moveset Video (UNETLoader: minimax_h3_ref2va_pruned_int8_convrot.safetensors)
+ * - Native ComfyUI ImageFromBatch slicing for South, East, North turnaround extraction.
  */
 
 export interface ConceptGraphOpts {
@@ -107,7 +110,7 @@ export interface MultiViewTurnaroundGraphOpts {
 }
 
 /**
- * SV3D / Zero123++ Multi-View Turnaround Graph using native ImageFromBatch slicing.
+ * Multi-View Turnaround Graph powered by MiniMax H3 Omni-DiT (UNETLoader) + ReferenceLatent + ImageFromBatch.
  * Extracts South (0°), East (90°), and North (180°) in a single atomic pass,
  * and saves isolated canonical images plus the full orbit batch.
  */
@@ -119,155 +122,13 @@ export function buildMultiViewTurnaroundGraph({
   cameraOffset = 0,
 }: MultiViewTurnaroundGraphOpts): Record<string, any> {
   const isZero123 = engine === "zero123";
+  const batchSize = isZero123 ? 6 : 21;
 
   // Calculate batch indices for front, east, north
   const frontIdx = 0;
   const eastIdx = isZero123 ? 1 : Math.max(0, Math.min(20, 5 + cameraOffset));
   const northIdx = isZero123 ? 3 : Math.max(0, Math.min(20, 10 + cameraOffset));
 
-  if (isZero123) {
-    return {
-      "1": {
-        class_type: "LoadImage",
-        inputs: { image },
-      },
-      "2": {
-        class_type: "ImageScale",
-        inputs: {
-          image: ["1", 0],
-          upscale_method: "nearest-exact",
-          width: 512,
-          height: 512,
-          crop: "disabled",
-        },
-      },
-      "3": {
-        class_type: "UNETLoader",
-        inputs: {
-          unet_name: "zero123plus_fp16.safetensors",
-          weight_dtype: "default",
-        },
-      },
-      "4": {
-        class_type: "CLIPLoader",
-        inputs: {
-          clip_name: "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
-          type: "minimax",
-        },
-      },
-      "5": {
-        class_type: "VAELoader",
-        inputs: {
-          vae_name: "minimax_h3_video_vae_fp16.safetensors",
-        },
-      },
-      "6": {
-        class_type: "VAEEncode",
-        inputs: {
-          pixels: ["2", 0],
-          vae: ["5", 0],
-        },
-      },
-      "7": {
-        class_type: "CLIPTextEncode",
-        inputs: {
-          clip: ["4", 0],
-          text: `pixel art multi-view turnaround sheet of ${character}, front view, side profile, and back view, clean sprite alignment, solid flat green chroma background`,
-        },
-      },
-      "8": {
-        class_type: "CLIPTextEncode",
-        inputs: {
-          clip: ["4", 0],
-          text: "blurry, noise, photorealistic, cast shadow, dark background",
-        },
-      },
-      "9": {
-        class_type: "EmptyLatentImage",
-        inputs: {
-          batch_size: 6,
-          height: 512,
-          width: 512,
-        },
-      },
-      "10": {
-        class_type: "KSampler",
-        inputs: {
-          cfg: 2.5,
-          denoise: 1.0,
-          latent_image: ["9", 0],
-          model: ["3", 0],
-          negative: ["8", 0],
-          positive: ["7", 0],
-          sampler_name: "euler",
-          scheduler: "normal",
-          seed,
-          steps: 8,
-        },
-      },
-      "11": {
-        class_type: "VAEDecode",
-        inputs: {
-          samples: ["10", 0],
-          vae: ["5", 0],
-        },
-      },
-      "slice_front": {
-        class_type: "ImageFromBatch",
-        inputs: {
-          image: ["11", 0],
-          batch_index: frontIdx,
-          length: 1,
-        },
-      },
-      "slice_east": {
-        class_type: "ImageFromBatch",
-        inputs: {
-          image: ["11", 0],
-          batch_index: eastIdx,
-          length: 1,
-        },
-      },
-      "slice_north": {
-        class_type: "ImageFromBatch",
-        inputs: {
-          image: ["11", 0],
-          batch_index: northIdx,
-          length: 1,
-        },
-      },
-      "save_front": {
-        class_type: "SaveImage",
-        inputs: {
-          filename_prefix: "spriteforge/multiview_front",
-          images: ["slice_front", 0],
-        },
-      },
-      "save_east": {
-        class_type: "SaveImage",
-        inputs: {
-          filename_prefix: "spriteforge/multiview_east",
-          images: ["slice_east", 0],
-        },
-      },
-      "save_north": {
-        class_type: "SaveImage",
-        inputs: {
-          filename_prefix: "spriteforge/multiview_north",
-          images: ["slice_north", 0],
-        },
-      },
-      "save_sheet": {
-        class_type: "SaveImage",
-        inputs: {
-          filename_prefix: "spriteforge/multiview_sheet",
-          images: ["11", 0],
-        },
-      },
-    };
-  }
-
-  // SV3D 360-degree orbit turnaround (21 frames)
   return {
     "1": {
       class_type: "LoadImage",
@@ -279,14 +140,15 @@ export function buildMultiViewTurnaroundGraph({
         image: ["1", 0],
         upscale_method: "nearest-exact",
         width: 512,
-        height: 512,
+        height: 768,
         crop: "disabled",
       },
     },
     "3": {
-      class_type: "CheckpointLoaderSimple",
+      class_type: "UNETLoader",
       inputs: {
-        ckpt_name: "sv3d_u.safetensors",
+        unet_name: "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        weight_dtype: "default",
       },
     },
     "4": {
@@ -324,39 +186,46 @@ export function buildMultiViewTurnaroundGraph({
       },
     },
     "9": {
-      class_type: "EmptyLatentImage",
+      class_type: "ReferenceLatent",
       inputs: {
-        batch_size: 21,
-        height: 512,
-        width: 512,
+        conditioning: ["7", 0],
+        latent: ["6", 0],
       },
     },
     "10": {
+      class_type: "EmptyLatentImage",
+      inputs: {
+        batch_size: batchSize,
+        height: 768,
+        width: 512,
+      },
+    },
+    "11": {
       class_type: "KSampler",
       inputs: {
         cfg: 2.0,
         denoise: 1.0,
-        latent_image: ["9", 0],
+        latent_image: ["10", 0],
         model: ["3", 0],
         negative: ["8", 0],
-        positive: ["7", 0],
+        positive: ["9", 0],
         sampler_name: "euler",
         scheduler: "normal",
         seed,
         steps: 8,
       },
     },
-    "11": {
+    "12": {
       class_type: "VAEDecode",
       inputs: {
-        samples: ["10", 0],
+        samples: ["11", 0],
         vae: ["5", 0],
       },
     },
     "slice_front": {
       class_type: "ImageFromBatch",
       inputs: {
-        image: ["11", 0],
+        image: ["12", 0],
         batch_index: frontIdx,
         length: 1,
       },
@@ -364,7 +233,7 @@ export function buildMultiViewTurnaroundGraph({
     "slice_east": {
       class_type: "ImageFromBatch",
       inputs: {
-        image: ["11", 0],
+        image: ["12", 0],
         batch_index: eastIdx,
         length: 1,
       },
@@ -372,7 +241,7 @@ export function buildMultiViewTurnaroundGraph({
     "slice_north": {
       class_type: "ImageFromBatch",
       inputs: {
-        image: ["11", 0],
+        image: ["12", 0],
         batch_index: northIdx,
         length: 1,
       },
@@ -402,7 +271,7 @@ export function buildMultiViewTurnaroundGraph({
       class_type: "SaveImage",
       inputs: {
         filename_prefix: "spriteforge/multiview_sheet",
-        images: ["11", 0],
+        images: ["12", 0],
       },
     },
   };
