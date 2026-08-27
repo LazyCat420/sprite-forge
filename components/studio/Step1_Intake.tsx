@@ -4,6 +4,8 @@ import React, { useState } from "react";
 
 export interface Step1IntakeProps {
   character: string;
+  masterRefDataUrl: string | null;
+  onSetMasterRef: (dataUrl: string) => void;
   onAdvance: () => void;
 }
 
@@ -45,12 +47,16 @@ const ARCHETYPES = [
   },
 ];
 
-export function Step1_Intake({ character, onAdvance }: Step1IntakeProps) {
+export function Step1_Intake({
+  character,
+  masterRefDataUrl,
+  onSetMasterRef,
+  onAdvance,
+}: Step1IntakeProps) {
   const [selectedArchetype, setSelectedArchetype] = useState(character || "knight");
   const [prompt, setPrompt] = useState(ARCHETYPES[0].defaultPrompt);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
-  const [refImageDataUrl, setRefImageDataUrl] = useState<string | null>(null);
 
   const handleArchetypeSelect = (archId: string) => {
     setSelectedArchetype(archId);
@@ -78,7 +84,7 @@ export function Step1_Intake({ character, onAdvance }: Step1IntakeProps) {
         throw new Error(data.error || "Generation failed on DGX Spark");
       }
 
-      setRefImageDataUrl(data.imageDataUrl);
+      onSetMasterRef(data.imageDataUrl);
     } catch (err: any) {
       console.error(err);
       setGenerationError(err.message || String(err));
@@ -232,9 +238,9 @@ export function Step1_Intake({ character, onAdvance }: Step1IntakeProps) {
             Master Reference (S-Facing)
           </div>
 
-          {refImageDataUrl ? (
+          {masterRefDataUrl ? (
             <img
-              src={refImageDataUrl}
+              src={masterRefDataUrl}
               alt="Generated Master Reference"
               style={{
                 maxWidth: 120,
@@ -271,7 +277,7 @@ export function Step1_Intake({ character, onAdvance }: Step1IntakeProps) {
       {/* Advance Footer */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: 12, color: "#8b949e" }}>
-          {refImageDataUrl ? "✓ Master reference ready" : "Draft or generate concept to continue"}
+          {masterRefDataUrl ? "✓ Master reference locked" : "Draft or generate concept to continue"}
         </span>
 
         <button

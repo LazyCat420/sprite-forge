@@ -13,6 +13,7 @@ export default function StudioPage() {
   const [character, setCharacter] = useState("knight");
   const [step, setStep] = useState<StudioStep>(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([1]);
+  const [masterRefImage, setMasterRefImage] = useState<string | null>(null);
 
   const [activeClip, setActiveClip] = useState<{ clip: string; facing: "S" | "E" | "N" }>({
     clip: "walk",
@@ -45,6 +46,7 @@ export default function StudioPage() {
           setCharacter(c);
           setStep(1);
           setCompletedSteps([1]);
+          setMasterRefImage(null);
         }}
         onNewCharacter={() => {
           const name = prompt("Enter new character name (e.g. Paladin, Necromancer):");
@@ -52,6 +54,7 @@ export default function StudioPage() {
             setCharacter(name.toLowerCase().replace(/\s+/g, "_"));
             setStep(1);
             setCompletedSteps([1]);
+            setMasterRefImage(null);
           }
         }}
       />
@@ -68,6 +71,8 @@ export default function StudioPage() {
         {step === 1 && (
           <Step1_Intake
             character={character}
+            masterRefDataUrl={masterRefImage}
+            onSetMasterRef={(dataUrl) => setMasterRefImage(dataUrl)}
             onAdvance={() => handleAdvance(2)}
           />
         )}
@@ -75,6 +80,7 @@ export default function StudioPage() {
         {step === 2 && (
           <Step2_Turnaround
             character={character}
+            masterRefDataUrl={masterRefImage}
             onAdvance={() => handleAdvance(3)}
             onBack={() => setStep(1)}
           />
@@ -106,6 +112,7 @@ export default function StudioPage() {
             onRestart={() => {
               setStep(1);
               setCompletedSteps([1]);
+              setMasterRefImage(null);
             }}
           />
         )}

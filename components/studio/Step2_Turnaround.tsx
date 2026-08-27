@@ -4,24 +4,30 @@ import React, { useState } from "react";
 
 export interface Step2TurnaroundProps {
   character: string;
+  masterRefDataUrl: string | null;
   onAdvance: () => void;
   onBack: () => void;
 }
 
-export function Step2_Turnaround({ character, onAdvance, onBack }: Step2TurnaroundProps) {
+export function Step2_Turnaround({
+  character,
+  masterRefDataUrl,
+  onAdvance,
+  onBack,
+}: Step2TurnaroundProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
-  const [sDataUrl, setSDataUrl] = useState<string | null>(null);
   const [eDataUrl, setEDataUrl] = useState<string | null>(null);
   const [nDataUrl, setNDataUrl] = useState<string | null>(null);
+  const [denoise, setDenoise] = useState(0.65);
 
   const handleGenerateTurnaround = async () => {
     setIsGenerating(true);
     setGenerationError(null);
 
     try {
-      // Dispatches E and N turnaround jobs
+      // Dispatches E and N turnaround jobs using Step 1 Master Reference as the init image
       const [resE, resN] = await Promise.all([
         fetch("/api/generate", {
           method: "POST",
@@ -30,6 +36,8 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
             mode: "turnaround",
             character,
             facing: "E",
+            initImageDataUrl: masterRefDataUrl,
+            denoise,
           }),
         }),
         fetch("/api/generate", {
@@ -39,12 +47,17 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
             mode: "turnaround",
             character,
             facing: "N",
+            initImageDataUrl: masterRefDataUrl,
+            denoise,
           }),
         }),
       ]);
 
       const dataE = await resE.json();
       const dataN = await resN.json();
+
+      if (!dataE.ok && dataE.error) throw new Error(`E-Facing: ${dataE.error}`);
+      if (!dataN.ok && dataN.error) throw new Error(`N-Facing: ${dataN.error}`);
 
       if (dataE.ok && dataE.imageDataUrl) setEDataUrl(dataE.imageDataUrl);
       if (dataN.ok && dataN.imageDataUrl) setNDataUrl(dataN.imageDataUrl);
@@ -63,7 +76,7 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
           Step 2: 3-Facing Turnaround Generation (S, E, N)
         </h2>
         <p style={{ fontSize: 13, color: "#8b949e", margin: 0 }}>
-          Pinball Knight and 2.5D games require 3 core facings: South (Front), East (Side), and North (Back). Generate the turnaround angles and verify scale and ground line consistency.
+          Generates East (Side Profile) and North (Back Facing) angles conditioned on the Step 1 Master Reference image, locking character armor, colors, helmet, and ground baseline ($y=44$).
         </p>
       </div>
 
@@ -102,8 +115,8 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
           </div>
           <div
             style={{
-              width: 96,
-              height: 144,
+              width: 110,
+              height: 160,
               background: "#0d1117",
               border: "1px solid #238636",
               borderRadius: 4,
@@ -113,10 +126,10 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
               position: "relative",
             }}
           >
-            {sDataUrl ? (
+            {masterRefDataUrl ? (
               <img
-                src={sDataUrl}
-                alt="S Facing"
+                src={masterRefDataUrl}
+                alt="S Facing Master Reference"
                 style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", imageRendering: "pixelated" }}
               />
             ) : (
@@ -133,7 +146,7 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
               }}
             />
           </div>
-          <span style={{ fontSize: 11, color: "#8fdd9f" }}>✓ Master Reference Locked</span>
+          <span style={{ fontSize: 11, color: "#8fdd9f" }}>✓ Step 1 Master Reference Locked</span>
         </div>
 
         {/* Facing E (Side Profile) */}
@@ -154,8 +167,8 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
           </div>
           <div
             style={{
-              width: 96,
-              height: 144,
+              width: 110,
+              height: 160,
               background: "#0d1117",
               border: `1px solid ${eDataUrl ? "#238636" : "#30363d"}`,
               borderRadius: 4,
@@ -186,7 +199,7 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
             />
           </div>
           <span style={{ fontSize: 11, color: eDataUrl ? "#8fdd9f" : "#8b949e" }}>
-            {eDataUrl ? "✓ Aligned (y=44)" : "Pending Render"}
+            {eDataUrl ? "✓ Identity & Baseline Locked" : "Pending Render"}
           </span>
         </div>
 
@@ -208,8 +221,8 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
           </div>
           <div
             style={{
-              width: 96,
-              height: 144,
+              width: 110,
+              height: 160,
               background: "#0d1117",
               border: `1px solid ${nDataUrl ? "#238636" : "#30363d"}`,
               borderRadius: 4,
@@ -240,7 +253,7 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
             />
           </div>
           <span style={{ fontSize: 11, color: nDataUrl ? "#8fdd9f" : "#8b949e" }}>
-            {nDataUrl ? "✓ Aligned (y=44)" : "Pending Render"}
+            {nDataUrl ? "✓ Identity & Baseline Locked" : "Pending Render"}
           </span>
         </div>
       </div>
@@ -259,18 +272,32 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
           gap: 12,
         }}
       >
-        <div>
-          <div style={{ fontWeight: 600, fontSize: 13, color: "#f0f6fc" }}>
-            Turnaround Batch Generator
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 13, color: "#f0f6fc" }}>
+              Turnaround Batch Generator (Img2Img Init)
+            </div>
+            <div style={{ fontSize: 12, color: "#8b949e" }}>
+              Uses Step 1 Master Reference as init image to preserve armor, helm, and color palette.
+            </div>
           </div>
-          <div style={{ fontSize: 12, color: "#8b949e" }}>
-            Renders missing E and N angles across Gold Spark and MSI Spark queues.
-          </div>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#c9d1d9" }}>
+            <span>Denoise: {denoise}</span>
+            <input
+              type="range"
+              min="0.45"
+              max="0.80"
+              step="0.05"
+              value={denoise}
+              onChange={(e) => setDenoise(parseFloat(e.target.value))}
+            />
+          </label>
         </div>
 
         <button
           onClick={handleGenerateTurnaround}
-          disabled={isGenerating}
+          disabled={isGenerating || !masterRefDataUrl}
           style={{
             background: isGenerating ? "#1f6feb" : "#238636",
             border: `1px solid ${isGenerating ? "#388bfd" : "#2ea043"}`,
@@ -278,7 +305,7 @@ export function Step2_Turnaround({ character, onAdvance, onBack }: Step2Turnarou
             borderRadius: 6,
             padding: "8px 16px",
             fontWeight: 600,
-            cursor: isGenerating ? "wait" : "pointer",
+            cursor: isGenerating ? "wait" : !masterRefDataUrl ? "not-allowed" : "pointer",
           }}
         >
           {isGenerating ? "⚡ Generating Turnaround Angles…" : "⚡ Generate Missing Angles (E + N)"}

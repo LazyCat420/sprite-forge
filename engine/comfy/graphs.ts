@@ -105,12 +105,15 @@ export interface TurnaroundGraphOpts {
   facing: "S" | "E" | "N";
   character: string;
   seed?: number;
+  denoise?: number;
 }
 
 export function buildTurnaroundGraph({
+  image,
   facing,
   character,
   seed = Math.floor(Math.random() * 1e9),
+  denoise = 0.65,
 }: TurnaroundGraphOpts): Record<string, any> {
   const facingText =
     facing === "E"
@@ -119,6 +122,87 @@ export function buildTurnaroundGraph({
         ? "back view facing away from camera"
         : "front facing toward camera";
 
+  // If init image is provided, use Img2Img VAEEncode conditioning to preserve exact character identity
+  if (image) {
+    return {
+      "1": {
+        class_type: "LoadImage",
+        inputs: { image },
+      },
+      "2": {
+        class_type: "UNETLoader",
+        inputs: {
+          unet_name: "krea2_turbo_fp8_scaled.safetensors",
+          weight_dtype: "default",
+        },
+      },
+      "3": {
+        class_type: "CLIPLoader",
+        inputs: {
+          clip_name: "qwen3vl_4b_fp8_scaled.safetensors",
+          type: "krea2",
+        },
+      },
+      "4": {
+        class_type: "VAELoader",
+        inputs: {
+          vae_name: "qwen_image_vae.safetensors",
+        },
+      },
+      "5": {
+        class_type: "VAEEncode",
+        inputs: {
+          pixels: ["1", 0],
+          vae: ["4", 0],
+        },
+      },
+      "6": {
+        class_type: "CLIPTextEncode",
+        inputs: {
+          clip: ["3", 0],
+          text: `pixel art sprite turnaround of ${character}, turned to ${facingText}, exact same armor, helmet, colors, and proportions as reference image, solid flat green chroma background, centered`,
+        },
+      },
+      "7": {
+        class_type: "CLIPTextEncode",
+        inputs: {
+          clip: ["3", 0],
+          text: "blurry, photorealistic, noise, dark background, cast shadow, deformed, extra limbs",
+        },
+      },
+      "8": {
+        class_type: "KSampler",
+        inputs: {
+          cfg: 2.0,
+          denoise,
+          latent_image: ["5", 0],
+          model: ["2", 0],
+          negative: ["7", 0],
+          positive: ["6", 0],
+          sampler_name: "euler",
+          scheduler: "normal",
+          seed,
+          steps: 8,
+        },
+      },
+      "9": {
+        class_type: "VAEDecode",
+        inputs: {
+          samples: ["8", 0],
+          vae: ["4", 0],
+        },
+      },
+      "10": {
+        class_type: "SaveImage",
+        inputs: {
+          filename_prefix: `spriteforge/turnaround_${facing}`,
+          images: ["9", 0],
+        },
+      },
+    };
+  }
+
+  // Fallback if no init image
   return {
     "1": {
       class_type: "UNETLoader",

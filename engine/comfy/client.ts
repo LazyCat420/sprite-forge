@@ -2,6 +2,31 @@
  * ComfyUI Client for Sprite Forge targeting DGX Spark cluster.
  */
 
+export async function uploadBase64Image(
+  dataUrl: string,
+  name = `init_${Date.now()}.png`,
+  comfyUrl: string
+): Promise<string> {
+  const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, "");
+  const buffer = Buffer.from(base64Data, "base64");
+
+  const formData = new FormData();
+  formData.append("image", new Blob([buffer], { type: "image/png" }), name);
+  formData.append("overwrite", "true");
+
+  const res = await fetch(`${comfyUrl}/upload/image`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    throw new Error(`[comfy] /upload/image failed: ${res.status} ${await res.text()}`);
+  }
+
+  const json = await res.json();
+  return json.subfolder ? `${json.subfolder}/${json.name}` : json.name;
+}
+
 export async function queuePrompt(
   graph: Record<string, any>,
   comfyUrl: string

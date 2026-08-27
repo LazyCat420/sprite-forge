@@ -1,24 +1,43 @@
 import { NextResponse } from "next/server";
 import { selectActiveComfyTarget } from "@/engine/cluster/spark-client";
 import { buildConceptGraph, buildTurnaroundGraph, buildMovesetGraph } from "@/engine/comfy/graphs";
-import { fetchOutputImage, queuePrompt, waitForPrompt } from "@/engine/comfy/client";
+import { fetchOutputImage, queuePrompt, uploadBase64Image, waitForPrompt } from "@/engine/comfy/client";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { mode = "concept", prompt, character = "knight", facing = "S", action = "walk", seed } = body;
+    const {
+      mode = "concept",
+      prompt,
+      character = "knight",
+      facing = "S",
+      action = "walk",
+      initImageDataUrl,
+      denoise = 0.65,
+      seed,
+    } = body;
 
     const comfyUrl = await selectActiveComfyTarget();
+
+    let uploadedImageName: string | undefined;
+    if (initImageDataUrl) {
+      uploadedImageName = await uploadBase64Image(
+        initImageDataUrl,
+        `init_${character}_${Date.now()}.png`,
+        comfyUrl
+      );
+    }
 
     let graph: Record<string, any>;
     if (mode === "turnaround") {
       graph = buildTurnaroundGraph({
-        image: body.image,
+        image: uploadedImageName,
         facing,
         character,
         seed,
+        denoise,
       });
     } else if (mode === "moveset") {
       graph = buildMovesetGraph({
