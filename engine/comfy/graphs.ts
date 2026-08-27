@@ -2,9 +2,9 @@
  * DGX Spark ComfyUI API Graph Builders for Sprite Forge.
  * Matched to exact models installed on Gold Spark & MSI Spark (128GB unified memory).
  * 
- * NOTE: Turnarounds use ReferenceLatent cross-attention conditioning from the Step 1
- * Master Reference image while sampling from a fresh latent (denoise: 1.0), enabling true
- * 3D 90-degree side profile and 180-degree back view rotations while locking identity & palette.
+ * - Concept Intake: Krea2 Turbo FP8 + Qwen3VL 4B + Qwen VAE (Fast initial concept exploration)
+ * - 3-Way Turnaround: MiniMax H3 Ref2VA INT8 + Qwen3VL 32B + MiniMax Video VAE (Reference Identity & True 3D Rotation)
+ * - Moveset Matrix: MiniMax H3 FL2VA INT8 + Qwen3VL 32B + MiniMax Video VAE (Video Moveset Animation)
  */
 
 export interface ConceptGraphOpts {
@@ -109,6 +109,11 @@ export interface TurnaroundGraphOpts {
   denoise?: number;
 }
 
+/**
+ * MiniMax H3 Ref2VA Turnaround Graph.
+ * Uses 32B MiniMax CLIP and Ref2VA UNET with ReferenceLatent cross-attention
+ * to preserve armor style, proportions, and palette while rotating to side/back views.
+ */
 export function buildTurnaroundGraph({
   image,
   facing,
@@ -119,10 +124,10 @@ export function buildTurnaroundGraph({
   const isNorth = facing === "N";
 
   const positivePrompt = isEast
-    ? `pixel art sprite of the same ${character}, 90 degree side profile facing right, side view of armor helmet and weapon, matching reference palette and details, solid flat green chroma background, centered`
+    ? `pixel art sprite of the same ${character}, turned 90 degrees to side profile facing right, exact same armor colors and helmet, flat green chroma background, full body centered`
     : isNorth
-      ? `pixel art sprite of the same ${character}, seen from behind, 180 degree back facing away from camera, rear view of armor and helmet, matching reference palette and details, solid flat green chroma background, centered`
-      : `pixel art sprite of the same ${character}, front view facing camera, solid flat green chroma background, centered`;
+      ? `pixel art sprite of the same ${character}, seen from behind, 180 degrees back facing away from camera, rear view of armor and helmet, flat green chroma background, full body centered`
+      : `pixel art sprite of the same ${character}, front view facing camera, solid flat green chroma background, full body centered`;
 
   const negativePrompt = isEast
     ? "front view, facing camera, back view, blurry, photorealistic, noise, dark background, cast shadow, deformed"
@@ -130,7 +135,7 @@ export function buildTurnaroundGraph({
       ? "face, eyes, visor, front view, facing camera, blurry, photorealistic, noise, dark background, cast shadow"
       : "blurry, photorealistic, noise, dark background, cast shadow";
 
-  // If init reference image is provided, use ReferenceLatent cross-attention conditioning
+  // If init reference image is provided, use MiniMax H3 Ref2VA with ReferenceLatent
   if (image) {
     return {
       "1": {
@@ -140,21 +145,21 @@ export function buildTurnaroundGraph({
       "2": {
         class_type: "UNETLoader",
         inputs: {
-          unet_name: "krea2_turbo_fp8_scaled.safetensors",
+          unet_name: "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
           weight_dtype: "default",
         },
       },
       "3": {
         class_type: "CLIPLoader",
         inputs: {
-          clip_name: "qwen3vl_4b_fp8_scaled.safetensors",
-          type: "krea2",
+          clip_name: "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+          type: "minimax",
         },
       },
       "4": {
         class_type: "VAELoader",
         inputs: {
-          vae_name: "qwen_image_vae.safetensors",
+          vae_name: "minimax_h3_video_vae_fp16.safetensors",
         },
       },
       "5": {
@@ -172,17 +177,17 @@ export function buildTurnaroundGraph({
         },
       },
       "7": {
-        class_type: "ReferenceLatent",
-        inputs: {
-          conditioning: ["6", 0],
-          latent: ["5", 0],
-        },
-      },
-      "8": {
         class_type: "CLIPTextEncode",
         inputs: {
           clip: ["3", 0],
           text: negativePrompt,
+        },
+      },
+      "8": {
+        class_type: "ReferenceLatent",
+        inputs: {
+          conditioning: ["6", 0],
+          latent: ["5", 0],
         },
       },
       "9": {
@@ -196,12 +201,12 @@ export function buildTurnaroundGraph({
       "10": {
         class_type: "KSampler",
         inputs: {
-          cfg: 2.5,
+          cfg: 2.0,
           denoise: 1.0,
           latent_image: ["9", 0],
           model: ["2", 0],
-          negative: ["8", 0],
-          positive: ["7", 0],
+          negative: ["7", 0],
+          positive: ["8", 0],
           sampler_name: "euler",
           scheduler: "normal",
           seed,
@@ -218,7 +223,7 @@ export function buildTurnaroundGraph({
       "12": {
         class_type: "SaveImage",
         inputs: {
-          filename_prefix: `spriteforge/turnaround_${facing}`,
+          filename_prefix: `spriteforge/minimax_turnaround_${facing}`,
           images: ["11", 0],
         },
       },
@@ -230,21 +235,21 @@ export function buildTurnaroundGraph({
     "1": {
       class_type: "UNETLoader",
       inputs: {
-        unet_name: "krea2_turbo_fp8_scaled.safetensors",
+        unet_name: "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
         weight_dtype: "default",
       },
     },
     "2": {
       class_type: "CLIPLoader",
       inputs: {
-        clip_name: "qwen3vl_4b_fp8_scaled.safetensors",
-        type: "krea2",
+        clip_name: "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        type: "minimax",
       },
     },
     "3": {
       class_type: "VAELoader",
       inputs: {
-        vae_name: "qwen_image_vae.safetensors",
+        vae_name: "minimax_h3_video_vae_fp16.safetensors",
       },
     },
     "4": {
@@ -294,7 +299,7 @@ export function buildTurnaroundGraph({
     "9": {
       class_type: "SaveImage",
       inputs: {
-        filename_prefix: `spriteforge/turnaround_${facing}`,
+        filename_prefix: `spriteforge/minimax_turnaround_${facing}`,
         images: ["8", 0],
       },
     },
