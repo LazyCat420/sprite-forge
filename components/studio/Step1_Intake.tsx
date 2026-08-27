@@ -46,10 +46,11 @@ const ARCHETYPES = [
 ];
 
 export function Step1_Intake({ character, onAdvance }: Step1IntakeProps) {
-  const [selectedArchetype, setSelectedArchetype] = useState("knight");
+  const [selectedArchetype, setSelectedArchetype] = useState(character || "knight");
   const [prompt, setPrompt] = useState(ARCHETYPES[0].defaultPrompt);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [refImage, setRefImage] = useState<string | null>(null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [refImageDataUrl, setRefImageDataUrl] = useState<string | null>(null);
 
   const handleArchetypeSelect = (archId: string) => {
     setSelectedArchetype(archId);
@@ -59,11 +60,31 @@ export function Step1_Intake({ character, onAdvance }: Step1IntakeProps) {
 
   const handleGenerateConcept = async () => {
     setIsGenerating(true);
-    // Simulate generation or dispatch to DGX Spark
-    setTimeout(() => {
-      setRefImage("concept_ready");
+    setGenerationError(null);
+
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "concept",
+          character: selectedArchetype,
+          prompt,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Generation failed on DGX Spark");
+      }
+
+      setRefImageDataUrl(data.imageDataUrl);
+    } catch (err: any) {
+      console.error(err);
+      setGenerationError(err.message || String(err));
+    } finally {
       setIsGenerating(false);
-    }, 1200);
+    }
   };
 
   return (
@@ -142,18 +163,36 @@ export function Step1_Intake({ character, onAdvance }: Step1IntakeProps) {
             />
           </label>
 
+          {generationError && (
+            <div
+              style={{
+                background: "rgba(248, 81, 73, 0.15)",
+                border: "1px solid #f85149",
+                color: "#ff7b72",
+                padding: "8px 12px",
+                borderRadius: 6,
+                fontSize: 12,
+              }}
+            >
+              ⚠️ {generationError}
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: 10 }}>
             <button
               onClick={handleGenerateConcept}
               disabled={isGenerating}
               style={{
-                background: "#238636",
-                border: "1px solid #2ea043",
+                background: isGenerating ? "#1f6feb" : "#238636",
+                border: `1px solid ${isGenerating ? "#388bfd" : "#2ea043"}`,
                 color: "#fff",
                 borderRadius: 6,
                 padding: "8px 16px",
                 fontWeight: 600,
-                cursor: "pointer",
+                cursor: isGenerating ? "wait" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
               }}
             >
               {isGenerating ? "⚡ Generating on DGX Spark…" : "⚡ Generate Base Concept"}
@@ -192,20 +231,37 @@ export function Step1_Intake({ character, onAdvance }: Step1IntakeProps) {
           <div style={{ fontSize: 12, color: "#8b949e", marginBottom: 8, fontWeight: 600 }}>
             Master Reference (S-Facing)
           </div>
-          <div
-            style={{
-              width: 64,
-              height: 96,
-              background: "#1f6feb",
-              borderRadius: 4,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 24,
-            }}
-          >
-            {ARCHETYPES.find((a) => a.id === selectedArchetype)?.icon ?? "🗡️"}
-          </div>
+
+          {refImageDataUrl ? (
+            <img
+              src={refImageDataUrl}
+              alt="Generated Master Reference"
+              style={{
+                maxWidth: 120,
+                maxHeight: 180,
+                objectFit: "contain",
+                imageRendering: "pixelated",
+                borderRadius: 4,
+                border: "1px solid #238636",
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 64,
+                height: 96,
+                background: "#1f6feb",
+                borderRadius: 4,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 24,
+              }}
+            >
+              {ARCHETYPES.find((a) => a.id === selectedArchetype)?.icon ?? "🗡️"}
+            </div>
+          )}
+
           <div style={{ fontSize: 11, color: "#8fdd9f", marginTop: 8 }}>
             ✓ Canvas: 32x48 · Baseline: y=44
           </div>
@@ -213,7 +269,11 @@ export function Step1_Intake({ character, onAdvance }: Step1IntakeProps) {
       </div>
 
       {/* Advance Footer */}
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: 12, color: "#8b949e" }}>
+          {refImageDataUrl ? "✓ Master reference ready" : "Draft or generate concept to continue"}
+        </span>
+
         <button
           onClick={onAdvance}
           style={{
