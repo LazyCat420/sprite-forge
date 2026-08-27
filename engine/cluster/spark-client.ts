@@ -94,12 +94,11 @@ export async function toggleComfyService(onoff: "on" | "off"): Promise<boolean> 
 }
 
 export async function selectActiveComfyTarget(): Promise<string> {
-  // Try Gold Spark first
   try {
     const r1 = await fetch(`${GOLD_SPARK_URL}/system_stats`, { signal: AbortSignal.timeout(1000) });
     if (r1.ok) return GOLD_SPARK_URL;
   } catch {
-    /* fallback to MSI Spark */
+    /* fallback */
   }
 
   try {
@@ -110,4 +109,22 @@ export async function selectActiveComfyTarget(): Promise<string> {
   }
 
   return GOLD_SPARK_URL;
+}
+
+/**
+ * Route specific jobs across Gold Spark (Queue 1) and MSI Spark (Queue 2)
+ * for true parallel generation.
+ */
+export async function selectTargetForFacing(facing: "S" | "E" | "N" = "S"): Promise<string> {
+  if (facing === "N") {
+    // Try MSI Spark first for North angle to run concurrently with Gold Spark
+    try {
+      const r = await fetch(`${MSI_SPARK_URL}/system_stats`, { signal: AbortSignal.timeout(1000) });
+      if (r.ok) return MSI_SPARK_URL;
+    } catch {
+      /* fallback to Gold Spark */
+    }
+  }
+
+  return selectActiveComfyTarget();
 }

@@ -15,7 +15,8 @@ export function Step2_Turnaround({
   onAdvance,
   onBack,
 }: Step2TurnaroundProps) {
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingE, setIsGeneratingE] = useState(false);
+  const [isGeneratingN, setIsGeneratingN] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
   const [eDataUrl, setEDataUrl] = useState<string | null>(null);
@@ -23,51 +24,48 @@ export function Step2_Turnaround({
   const [denoise, setDenoise] = useState(0.65);
 
   const handleGenerateTurnaround = async () => {
-    setIsGenerating(true);
     setGenerationError(null);
+    setIsGeneratingE(true);
+    setIsGeneratingN(true);
 
-    try {
-      // Dispatches E and N turnaround jobs using Step 1 Master Reference as the init image
-      const [resE, resN] = await Promise.all([
-        fetch("/api/generate", {
+    const generateAngle = async (facing: "E" | "N", setter: (url: string) => void) => {
+      try {
+        const res = await fetch("/api/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             mode: "turnaround",
             character,
-            facing: "E",
+            facing,
             initImageDataUrl: masterRefDataUrl,
             denoise,
           }),
-        }),
-        fetch("/api/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            mode: "turnaround",
-            character,
-            facing: "N",
-            initImageDataUrl: masterRefDataUrl,
-            denoise,
-          }),
-        }),
-      ]);
+        });
 
-      const dataE = await resE.json();
-      const dataN = await resN.json();
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          throw new Error(`${facing}-Facing: ${data.error || "Generation failed"}`);
+        }
+        if (data.imageDataUrl) {
+          setter(data.imageDataUrl);
+        }
+      } catch (err: any) {
+        console.error(err);
+        setGenerationError((prev) => (prev ? `${prev} | ${err.message}` : err.message));
+      } finally {
+        if (facing === "E") setIsGeneratingE(false);
+        if (facing === "N") setIsGeneratingN(false);
+      }
+    };
 
-      if (!dataE.ok && dataE.error) throw new Error(`E-Facing: ${dataE.error}`);
-      if (!dataN.ok && dataN.error) throw new Error(`N-Facing: ${dataN.error}`);
-
-      if (dataE.ok && dataE.imageDataUrl) setEDataUrl(dataE.imageDataUrl);
-      if (dataN.ok && dataN.imageDataUrl) setNDataUrl(dataN.imageDataUrl);
-    } catch (err: any) {
-      console.error(err);
-      setGenerationError(err.message || String(err));
-    } finally {
-      setIsGenerating(false);
-    }
+    // Dispatch both angles concurrently to Gold Spark and MSI Spark
+    await Promise.allSettled([
+      generateAngle("E", setEDataUrl),
+      generateAngle("N", setNDataUrl),
+    ]);
   };
+
+  const isGenerating = isGeneratingE || isGeneratingN;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -76,7 +74,7 @@ export function Step2_Turnaround({
           Step 2: 3-Facing Turnaround Generation (S, E, N)
         </h2>
         <p style={{ fontSize: 13, color: "#8b949e", margin: 0 }}>
-          Generates East (Side Profile) and North (Back Facing) angles conditioned on the Step 1 Master Reference image, locking character armor, colors, helmet, and ground baseline ($y=44$).
+          Generates East (Side Profile) and North (Back Facing) angles conditioned on the Step 1 Master Reference image across Gold Spark and MSI Spark in parallel.
         </p>
       </div>
 
@@ -178,7 +176,11 @@ export function Step2_Turnaround({
               position: "relative",
             }}
           >
-            {eDataUrl ? (
+            {isGeneratingE ? (
+              <div style={{ fontSize: 12, color: "#58a6ff", textAlign: "center" }}>
+                ⚡ Rendering on Gold Spark…
+              </div>
+            ) : eDataUrl ? (
               <img
                 src={eDataUrl}
                 alt="E Facing"
@@ -198,8 +200,8 @@ export function Step2_Turnaround({
               }}
             />
           </div>
-          <span style={{ fontSize: 11, color: eDataUrl ? "#8fdd9f" : "#8b949e" }}>
-            {eDataUrl ? "✓ Identity & Baseline Locked" : "Pending Render"}
+          <span style={{ fontSize: 11, color: eDataUrl ? "#8fdd9f" : isGeneratingE ? "#58a6ff" : "#8b949e" }}>
+            {eDataUrl ? "✓ Identity & Baseline Locked" : isGeneratingE ? "Rendering…" : "Pending Render"}
           </span>
         </div>
 
@@ -232,7 +234,11 @@ export function Step2_Turnaround({
               position: "relative",
             }}
           >
-            {nDataUrl ? (
+            {isGeneratingN ? (
+              <div style={{ fontSize: 12, color: "#58a6ff", textAlign: "center" }}>
+                ⚡ Rendering on MSI Spark…
+              </div>
+            ) : nDataUrl ? (
               <img
                 src={nDataUrl}
                 alt="N Facing"
@@ -252,8 +258,8 @@ export function Step2_Turnaround({
               }}
             />
           </div>
-          <span style={{ fontSize: 11, color: nDataUrl ? "#8fdd9f" : "#8b949e" }}>
-            {nDataUrl ? "✓ Identity & Baseline Locked" : "Pending Render"}
+          <span style={{ fontSize: 11, color: nDataUrl ? "#8fdd9f" : isGeneratingN ? "#58a6ff" : "#8b949e" }}>
+            {nDataUrl ? "✓ Identity & Baseline Locked" : isGeneratingN ? "Rendering…" : "Pending Render"}
           </span>
         </div>
       </div>
@@ -275,10 +281,10 @@ export function Step2_Turnaround({
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div>
             <div style={{ fontWeight: 600, fontSize: 13, color: "#f0f6fc" }}>
-              Turnaround Batch Generator (Img2Img Init)
+              Turnaround Dual-Node Generator (Img2Img Init)
             </div>
             <div style={{ fontSize: 12, color: "#8b949e" }}>
-              Uses Step 1 Master Reference as init image to preserve armor, helm, and color palette.
+              Dispatches E to Gold Spark and N to MSI Spark concurrently.
             </div>
           </div>
 
@@ -308,7 +314,7 @@ export function Step2_Turnaround({
             cursor: isGenerating ? "wait" : !masterRefDataUrl ? "not-allowed" : "pointer",
           }}
         >
-          {isGenerating ? "⚡ Generating Turnaround Angles…" : "⚡ Generate Missing Angles (E + N)"}
+          {isGenerating ? "⚡ Rendering (Gold + MSI Spark)…" : "⚡ Generate Missing Angles (E + N)"}
         </button>
       </div>
 

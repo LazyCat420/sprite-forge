@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { selectActiveComfyTarget } from "@/engine/cluster/spark-client";
+import { selectTargetForFacing } from "@/engine/cluster/spark-client";
 import { buildConceptGraph, buildTurnaroundGraph, buildMovesetGraph } from "@/engine/comfy/graphs";
 import { fetchOutputImage, queuePrompt, uploadBase64Image, waitForPrompt } from "@/engine/comfy/client";
 
@@ -19,13 +19,13 @@ export async function POST(req: Request) {
       seed,
     } = body;
 
-    const comfyUrl = await selectActiveComfyTarget();
+    const comfyUrl = await selectTargetForFacing(facing);
 
     let uploadedImageName: string | undefined;
     if (initImageDataUrl) {
       uploadedImageName = await uploadBase64Image(
         initImageDataUrl,
-        `init_${character}_${Date.now()}.png`,
+        `init_${character}_${facing}_${Date.now()}.png`,
         comfyUrl
       );
     }
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     }
 
     const promptId = await queuePrompt(graph, comfyUrl);
-    const history = await waitForPrompt(promptId, comfyUrl, 45000, 1000);
+    const history = await waitForPrompt(promptId, comfyUrl, 120000, 1000);
 
     const outputs = Object.values(history.outputs ?? {}) as any[];
     const firstOutput = outputs[0];
