@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { selectActiveComfyTarget } from "@/engine/cluster/spark-client";
-import { buildConceptGraph, buildTurnaroundGraph } from "@/engine/comfy/graphs";
+import { buildConceptGraph, buildTurnaroundGraph, buildMovesetGraph } from "@/engine/comfy/graphs";
 import { fetchOutputImage, queuePrompt, waitForPrompt } from "@/engine/comfy/client";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { mode = "concept", prompt, character = "knight", facing = "S", seed } = body;
+    const { mode = "concept", prompt, character = "knight", facing = "S", action = "walk", seed } = body;
 
     const comfyUrl = await selectActiveComfyTarget();
 
@@ -18,6 +18,13 @@ export async function POST(req: Request) {
         image: body.image,
         facing,
         character,
+        seed,
+      });
+    } else if (mode === "moveset") {
+      graph = buildMovesetGraph({
+        character,
+        action,
+        facing,
         seed,
       });
     } else {
