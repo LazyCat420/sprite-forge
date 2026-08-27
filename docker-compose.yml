@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  sprite-forge:
+    image: sprite-forge:latest
+    container_name: sprite-forge
+    restart: unless-stopped
+    ports:
+      - "5176:5176"
+    environment:
+      - NODE_ENV=production
+      - PORT=5176
+      - GOLD_SPARK_URL=http://10.0.0.141:8188
+      - MSI_SPARK_URL=http://10.0.0.103:8188
+      - SPARK_CONSOLE_URL=http://10.0.0.141:8800
