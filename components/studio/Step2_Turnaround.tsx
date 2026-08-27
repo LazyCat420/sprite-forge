@@ -7,6 +7,7 @@ export interface Step2TurnaroundProps {
   masterRefDataUrl: string | null;
   onAdvance: () => void;
   onBack: () => void;
+  onSetTurnaroundAngles?: (angles: { south: string; east: string; north: string }) => void;
 }
 
 export function Step2_Turnaround({
@@ -14,58 +15,93 @@ export function Step2_Turnaround({
   masterRefDataUrl,
   onAdvance,
   onBack,
+  onSetTurnaroundAngles,
 }: Step2TurnaroundProps) {
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingE, setIsGeneratingE] = useState(false);
   const [isGeneratingN, setIsGeneratingN] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
+  const [engine, setEngine] = useState<"sv3d" | "zero123">("sv3d");
   const [eDataUrl, setEDataUrl] = useState<string | null>(null);
   const [nDataUrl, setNDataUrl] = useState<string | null>(null);
-  const [denoise, setDenoise] = useState(0.65);
 
-  const handleGenerateTurnaround = async () => {
+  // Single-pass 3D Multi-View Orbit Generator
+  const handleGenerateMultiView = async () => {
+    if (!masterRefDataUrl) return;
+    setIsGenerating(true);
     setGenerationError(null);
-    setIsGeneratingE(true);
-    setIsGeneratingN(true);
 
-    const generateAngle = async (facing: "E" | "N", setter: (url: string) => void) => {
-      try {
-        const res = await fetch("/api/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            mode: "turnaround",
-            character,
-            facing,
-            initImageDataUrl: masterRefDataUrl,
-            denoise,
-          }),
-        });
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "multiview_turnaround",
+          engine,
+          character,
+          initImageDataUrl: masterRefDataUrl,
+        }),
+      });
 
-        const data = await res.json();
-        if (!res.ok || !data.ok) {
-          throw new Error(`${facing}-Facing: ${data.error || "Generation failed"}`);
-        }
-        if (data.imageDataUrl) {
-          setter(data.imageDataUrl);
-        }
-      } catch (err: any) {
-        console.error(err);
-        setGenerationError((prev) => (prev ? `${prev} | ${err.message}` : err.message));
-      } finally {
-        if (facing === "E") setIsGeneratingE(false);
-        if (facing === "N") setIsGeneratingN(false);
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Multi-View generation failed on DGX Spark");
       }
-    };
 
-    // Dispatch both angles concurrently to Gold Spark and MSI Spark
-    await Promise.allSettled([
-      generateAngle("E", setEDataUrl),
-      generateAngle("N", setNDataUrl),
-    ]);
+      if (data.imageDataUrl) {
+        setEDataUrl(data.imageDataUrl);
+        setNDataUrl(data.imageDataUrl);
+        onSetTurnaroundAngles?.({
+          south: masterRefDataUrl,
+          east: data.imageDataUrl,
+          north: data.imageDataUrl,
+        });
+      }
+    } catch (err: any) {
+      console.error(err);
+      setGenerationError(err.message || String(err));
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const isGenerating = isGeneratingE || isGeneratingN;
+  // Per-Angle generation
+  const handleGenerateSingleAngle = async (facing: "E" | "N") => {
+    if (!masterRefDataUrl) return;
+    setGenerationError(null);
+    if (facing === "E") setIsGeneratingE(true);
+    if (facing === "N") setIsGeneratingN(true);
+
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "turnaround",
+          character,
+          facing,
+          initImageDataUrl: masterRefDataUrl,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(`${facing}-Facing: ${data.error || "Generation failed"}`);
+      }
+
+      if (data.imageDataUrl) {
+        if (facing === "E") setEDataUrl(data.imageDataUrl);
+        if (facing === "N") setNDataUrl(data.imageDataUrl);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setGenerationError(err.message || String(err));
+    } finally {
+      if (facing === "E") setIsGeneratingE(false);
+      if (facing === "N") setIsGeneratingN(false);
+    }
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -74,7 +110,7 @@ export function Step2_Turnaround({
           Step 2: 3-Facing Turnaround Generation (S, E, N)
         </h2>
         <p style={{ fontSize: 13, color: "#8b949e", margin: 0 }}>
-          Generates East (Side Profile) and North (Back Facing) angles conditioned on the Step 1 Master Reference image across Gold Spark and MSI Spark in parallel.
+          Generates canonical East ($90^\circ$ Side Profile) and North ($180^\circ$ Back Facing) views with locked 3D geometry, proportion consistency, and ground baseline ($y=44$).
         </p>
       </div>
 
@@ -200,9 +236,21 @@ export function Step2_Turnaround({
               }}
             />
           </div>
-          <span style={{ fontSize: 11, color: eDataUrl ? "#8fdd9f" : isGeneratingE ? "#58a6ff" : "#8b949e" }}>
-            {eDataUrl ? "✓ Identity & Baseline Locked" : isGeneratingE ? "Rendering…" : "Pending Render"}
-          </span>
+          <button
+            onClick={() => handleGenerateSingleAngle("E")}
+            disabled={isGeneratingE || !masterRefDataUrl}
+            style={{
+              fontSize: 11,
+              background: "#21262d",
+              border: "1px solid #30363d",
+              color: "#c9d1d9",
+              borderRadius: 4,
+              padding: "4px 8px",
+              cursor: "pointer",
+            }}
+          >
+            {isGeneratingE ? "Rendering…" : eDataUrl ? "↺ Re-render East" : "⚡ Render East"}
+          </button>
         </div>
 
         {/* Facing N (Back Facing) */}
@@ -258,63 +306,98 @@ export function Step2_Turnaround({
               }}
             />
           </div>
-          <span style={{ fontSize: 11, color: nDataUrl ? "#8fdd9f" : isGeneratingN ? "#58a6ff" : "#8b949e" }}>
-            {nDataUrl ? "✓ Identity & Baseline Locked" : isGeneratingN ? "Rendering…" : "Pending Render"}
-          </span>
+          <button
+            onClick={() => handleGenerateSingleAngle("N")}
+            disabled={isGeneratingN || !masterRefDataUrl}
+            style={{
+              fontSize: 11,
+              background: "#21262d",
+              border: "1px solid #30363d",
+              color: "#c9d1d9",
+              borderRadius: 4,
+              padding: "4px 8px",
+              cursor: "pointer",
+            }}
+          >
+            {isGeneratingN ? "Rendering…" : nDataUrl ? "↺ Re-render North" : "⚡ Render North"}
+          </button>
         </div>
       </div>
 
-      {/* Turnaround Generation Actions */}
+      {/* 3D Multi-View Turnaround Action Banner */}
       <div
         style={{
           background: "#161b22",
           border: "1px solid #30363d",
           borderRadius: 8,
-          padding: 16,
+          padding: 18,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           flexWrap: "wrap",
-          gap: 12,
+          gap: 14,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
           <div>
-            <div style={{ fontWeight: 600, fontSize: 13, color: "#f0f6fc" }}>
-              Turnaround Dual-Node Generator (Img2Img Init)
+            <div style={{ fontWeight: 600, fontSize: 14, color: "#f0f6fc" }}>
+              3D Consistency Multi-View Generator
             </div>
-            <div style={{ fontSize: 12, color: "#8b949e" }}>
-              Dispatches E to Gold Spark and N to MSI Spark concurrently.
+            <div style={{ fontSize: 12, color: "#8b949e", marginTop: 2 }}>
+              Extracts Front, Profile, and Back angles in a single 3D orbital pass.
             </div>
           </div>
 
-          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#c9d1d9" }}>
-            <span>Denoise: {denoise}</span>
-            <input
-              type="range"
-              min="0.45"
-              max="0.80"
-              step="0.05"
-              value={denoise}
-              onChange={(e) => setDenoise(parseFloat(e.target.value))}
-            />
-          </label>
+          {/* Engine Selector Toggle */}
+          <div style={{ display: "flex", gap: 6, background: "#0d1117", padding: 4, borderRadius: 6, border: "1px solid #30363d" }}>
+            <button
+              onClick={() => setEngine("sv3d")}
+              style={{
+                background: engine === "sv3d" ? "#1f6feb" : "transparent",
+                color: engine === "sv3d" ? "#fff" : "#8b949e",
+                border: "none",
+                borderRadius: 4,
+                padding: "4px 10px",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              SV3D Orbit (360°)
+            </button>
+            <button
+              onClick={() => setEngine("zero123")}
+              style={{
+                background: engine === "zero123" ? "#1f6feb" : "transparent",
+                color: engine === "zero123" ? "#fff" : "#8b949e",
+                border: "none",
+                borderRadius: 4,
+                padding: "4px 10px",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Zero123++ (6-View)
+            </button>
+          </div>
         </div>
 
         <button
-          onClick={handleGenerateTurnaround}
+          onClick={handleGenerateMultiView}
           disabled={isGenerating || !masterRefDataUrl}
           style={{
             background: isGenerating ? "#1f6feb" : "#238636",
             border: `1px solid ${isGenerating ? "#388bfd" : "#2ea043"}`,
             color: "#fff",
             borderRadius: 6,
-            padding: "8px 16px",
+            padding: "10px 20px",
             fontWeight: 600,
+            fontSize: 13,
             cursor: isGenerating ? "wait" : !masterRefDataUrl ? "not-allowed" : "pointer",
           }}
         >
-          {isGenerating ? "⚡ Rendering (Gold + MSI Spark)…" : "⚡ Generate Missing Angles (E + N)"}
+          {isGenerating ? "⚡ Generating 3D Multi-View Pass…" : "⚡ Generate 3D Multi-View Turnaround"}
         </button>
       </div>
 

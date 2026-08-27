@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { selectTargetForFacing } from "@/engine/cluster/spark-client";
-import { buildConceptGraph, buildTurnaroundGraph, buildMovesetGraph } from "@/engine/comfy/graphs";
+import {
+  buildConceptGraph,
+  buildTurnaroundGraph,
+  buildMultiViewTurnaroundGraph,
+  buildMultiRefMovesetGraph,
+} from "@/engine/comfy/graphs";
 import { fetchOutputImage, queuePrompt, uploadBase64Image, waitForPrompt } from "@/engine/comfy/client";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +19,11 @@ export async function POST(req: Request) {
       character = "knight",
       facing = "S",
       action = "walk",
+      engine = "sv3d",
       initImageDataUrl,
+      frontDataUrl,
+      eastDataUrl,
+      northDataUrl,
       denoise = 0.65,
       seed,
     } = body;
@@ -30,8 +39,32 @@ export async function POST(req: Request) {
       );
     }
 
+    let frontUploaded: string | undefined;
+    let eastUploaded: string | undefined;
+    if (frontDataUrl) {
+      frontUploaded = await uploadBase64Image(
+        frontDataUrl,
+        `front_${character}_${Date.now()}.png`,
+        comfyUrl
+      );
+    }
+    if (eastDataUrl) {
+      eastUploaded = await uploadBase64Image(
+        eastDataUrl,
+        `east_${character}_${Date.now()}.png`,
+        comfyUrl
+      );
+    }
+
     let graph: Record<string, any>;
-    if (mode === "turnaround") {
+    if (mode === "multiview_turnaround") {
+      graph = buildMultiViewTurnaroundGraph({
+        image: uploadedImageName || "concept_00001_.png",
+        engine,
+        character,
+        seed,
+      });
+    } else if (mode === "turnaround") {
       graph = buildTurnaroundGraph({
         image: uploadedImageName,
         facing,
@@ -40,10 +73,12 @@ export async function POST(req: Request) {
         denoise,
       });
     } else if (mode === "moveset") {
-      graph = buildMovesetGraph({
+      graph = buildMultiRefMovesetGraph({
         character,
         action,
         facing,
+        frontImage: frontUploaded,
+        sideImage: eastUploaded,
         seed,
       });
     } else {

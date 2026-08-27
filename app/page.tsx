@@ -15,6 +15,12 @@ export default function StudioPage() {
   const [completedSteps, setCompletedSteps] = useState<number[]>([1]);
   const [masterRefImage, setMasterRefImage] = useState<string | null>(null);
 
+  const [turnaroundAngles, setTurnaroundAngles] = useState<{
+    south: string;
+    east: string;
+    north: string;
+  } | null>(null);
+
   const [activeClip, setActiveClip] = useState<{ clip: string; facing: "S" | "E" | "N" }>({
     clip: "walk",
     facing: "S",
@@ -47,6 +53,7 @@ export default function StudioPage() {
           setStep(1);
           setCompletedSteps([1]);
           setMasterRefImage(null);
+          setTurnaroundAngles(null);
         }}
         onNewCharacter={() => {
           const name = prompt("Enter new character name (e.g. Paladin, Necromancer):");
@@ -55,6 +62,7 @@ export default function StudioPage() {
             setStep(1);
             setCompletedSteps([1]);
             setMasterRefImage(null);
+            setTurnaroundAngles(null);
           }
         }}
       />
@@ -72,7 +80,14 @@ export default function StudioPage() {
           <Step1_Intake
             character={character}
             masterRefDataUrl={masterRefImage}
-            onSetMasterRef={(dataUrl) => setMasterRefImage(dataUrl)}
+            onSetMasterRef={(dataUrl) => {
+              setMasterRefImage(dataUrl);
+              setTurnaroundAngles({
+                south: dataUrl,
+                east: dataUrl,
+                north: dataUrl,
+              });
+            }}
             onAdvance={() => handleAdvance(2)}
           />
         )}
@@ -81,6 +96,7 @@ export default function StudioPage() {
           <Step2_Turnaround
             character={character}
             masterRefDataUrl={masterRefImage}
+            onSetTurnaroundAngles={(angles) => setTurnaroundAngles(angles)}
             onAdvance={() => handleAdvance(3)}
             onBack={() => setStep(1)}
           />
@@ -89,6 +105,7 @@ export default function StudioPage() {
         {step === 3 && (
           <Step3_MovesetMatrix
             character={character}
+            turnaroundAngles={turnaroundAngles}
             onAdvance={() => handleAdvance(4)}
             onBack={() => setStep(2)}
             onInspectClip={handleInspectClip}
@@ -113,6 +130,7 @@ export default function StudioPage() {
               setStep(1);
               setCompletedSteps([1]);
               setMasterRefImage(null);
+              setTurnaroundAngles(null);
             }}
           />
         )}
