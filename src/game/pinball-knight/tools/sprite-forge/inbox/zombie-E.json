@@ -1,0 +1,19 @@
+{
+ "mirror": true,
+ "rows": [
+  "walk",
+  "idle",
+  "attack",
+  "attack",
+  "stumble",
+  "death"
+ ],
+ "cells": [
+  4,
+  4,
+  4,
+  4,
+  4,
+  4
+ ]
+}

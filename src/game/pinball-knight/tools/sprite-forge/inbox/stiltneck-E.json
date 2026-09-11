@@ -1,0 +1,15 @@
+{
+  "rows": [
+    "idle",
+    "walk",
+    "attack",
+    "stumble",
+    "death"
+  ],
+  "cells": [
+    [5, 5],
+    5,
+    2,
+    3
+  ]
+}

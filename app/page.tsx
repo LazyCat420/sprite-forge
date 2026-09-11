@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import React, { useState } from "react";
 import { StudioHeader } from "@/components/studio/StudioHeader";
 import { StudioStepper, type StudioStep } from "@/components/studio/StudioStepper";
@@ -9,7 +10,10 @@ import { Step3_MovesetMatrix } from "@/components/studio/Step3_MovesetMatrix";
 import { Step4_ContactSheetQA } from "@/components/studio/Step4_ContactSheetQA";
 import { Step5_ExportAtlas } from "@/components/studio/Step5_ExportAtlas";
 
+const ForgePanel = dynamic(() => import("@/components/ForgePanel"), { ssr: false });
+
 export default function StudioPage() {
+  const [activeView, setActiveView] = useState<"forge" | "wizard">("forge");
   const [character, setCharacter] = useState("knight");
   const [step, setStep] = useState<StudioStep>(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([1]);
@@ -44,97 +48,145 @@ export default function StudioPage() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      {/* Top Header with Character Picker & DGX Spark Cluster Liveness */}
-      <StudioHeader
-        activeCharacter={character}
-        onSelectCharacter={(c) => {
-          setCharacter(c);
-          setStep(1);
-          setCompletedSteps([1]);
-          setMasterRefImage(null);
-          setTurnaroundAngles(null);
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#0a0a0f" }}>
+      {/* View Switcher Top Bar */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "8px 16px",
+          background: "#12141a",
+          borderBottom: "1px solid #232734",
+          fontSize: "13px",
         }}
-        onNewCharacter={() => {
-          const name = prompt("Enter new character name (e.g. Paladin, Necromancer):");
-          if (name) {
-            setCharacter(name.toLowerCase().replace(/\s+/g, "_"));
-            setStep(1);
-            setCompletedSteps([1]);
-            setMasterRefImage(null);
-            setTurnaroundAngles(null);
-          }
-        }}
-      />
-
-      {/* 5-Step Guided Progress Wizard */}
-      <StudioStepper
-        currentStep={step}
-        onSelectStep={(s) => setStep(s)}
-        completedSteps={completedSteps}
-      />
-
-      {/* Main Studio Viewport */}
-      <main style={{ flex: 1, padding: "24px 32px", maxWidth: 1200, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
-        {step === 1 && (
-          <Step1_Intake
-            character={character}
-            masterRefDataUrl={masterRefImage}
-            onSetMasterRef={(dataUrl) => {
-              setMasterRefImage(dataUrl);
-              setTurnaroundAngles({
-                south: dataUrl,
-                east: dataUrl,
-                north: dataUrl,
-              });
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontWeight: "bold", color: "#65e69e", letterSpacing: "1px" }}>⚡ SPRITE FORGE</span>
+          <span style={{ color: "#6b7280" }}>|</span>
+          <span style={{ color: "#9ca3af" }}>Studio & Model Workbench</span>
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button
+            onClick={() => setActiveView("forge")}
+            style={{
+              padding: "5px 12px",
+              borderRadius: "4px",
+              border: "1px solid",
+              borderColor: activeView === "forge" ? "#4f46e5" : "#374151",
+              background: activeView === "forge" ? "#4f46e5" : "#1f2937",
+              color: activeView === "forge" ? "#fff" : "#9ca3af",
+              cursor: "pointer",
+              fontWeight: 600,
             }}
-            onAdvance={() => handleAdvance(2)}
-          />
-        )}
+          >
+            Forge Dashboard (Library / Benchmarks)
+          </button>
+          <button
+            onClick={() => setActiveView("wizard")}
+            style={{
+              padding: "5px 12px",
+              borderRadius: "4px",
+              border: "1px solid",
+              borderColor: activeView === "wizard" ? "#4f46e5" : "#374151",
+              background: activeView === "wizard" ? "#4f46e5" : "#1f2937",
+              color: activeView === "wizard" ? "#fff" : "#9ca3af",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            5-Step Wizard
+          </button>
+        </div>
+      </div>
 
-        {step === 2 && (
-          <Step2_Turnaround
-            character={character}
-            masterRefDataUrl={masterRefImage}
-            onSetTurnaroundAngles={(angles) => setTurnaroundAngles(angles)}
-            onAdvance={() => handleAdvance(3)}
-            onBack={() => setStep(1)}
-          />
-        )}
-
-        {step === 3 && (
-          <Step3_MovesetMatrix
-            character={character}
-            turnaroundAngles={turnaroundAngles}
-            onAdvance={() => handleAdvance(4)}
-            onBack={() => setStep(2)}
-            onInspectClip={handleInspectClip}
-          />
-        )}
-
-        {step === 4 && (
-          <Step4_ContactSheetQA
-            character={character}
-            clip={activeClip.clip}
-            facing={activeClip.facing}
-            onAdvance={() => handleAdvance(5)}
-            onBack={() => setStep(3)}
-          />
-        )}
-
-        {step === 5 && (
-          <Step5_ExportAtlas
-            character={character}
-            onBack={() => setStep(4)}
-            onRestart={() => {
+      {activeView === "forge" ? (
+        <ForgePanel />
+      ) : (
+        <>
+          {/* Top Header with Character Picker & DGX Spark Cluster Liveness */}
+          <StudioHeader
+            activeCharacter={character}
+            onSelectCharacter={(c) => {
+              setCharacter(c);
               setStep(1);
               setCompletedSteps([1]);
               setMasterRefImage(null);
               setTurnaroundAngles(null);
             }}
+            onNewCharacter={() => {
+              const name = prompt("Enter new character name (e.g. Paladin, Necromancer):");
+              if (name) {
+                setCharacter(name.toLowerCase().replace(/\s+/g, "_"));
+                setStep(1);
+                setCompletedSteps([1]);
+                setMasterRefImage(null);
+                setTurnaroundAngles(null);
+              }
+            }}
           />
-        )}
-      </main>
+
+          {/* 5-Step Guided Progress Wizard */}
+          <StudioStepper
+            currentStep={step}
+            completedSteps={completedSteps}
+            onSelectStep={(s) => setStep(s)}
+          />
+
+          {/* Main Interactive Step Area */}
+          <main style={{ flex: 1, padding: "24px 32px", display: "flex", flexDirection: "column" }}>
+            {step === 1 && (
+              <Step1_Intake
+                character={character}
+                masterRefDataUrl={masterRefImage}
+                onSetMasterRef={(imgUrl: string) => setMasterRefImage(imgUrl)}
+                onAdvance={() => handleAdvance(2)}
+              />
+            )}
+
+            {step === 2 && (
+              <Step2_Turnaround
+                character={character}
+                masterRefDataUrl={masterRefImage}
+                onAdvance={() => handleAdvance(3)}
+                onBack={() => setStep(1)}
+                onSetTurnaroundAngles={(angles) => setTurnaroundAngles(angles)}
+              />
+            )}
+
+            {step === 3 && (
+              <Step3_MovesetMatrix
+                character={character}
+                turnaroundAngles={turnaroundAngles}
+                onAdvance={() => handleAdvance(4)}
+                onBack={() => setStep(2)}
+                onInspectClip={handleInspectClip}
+              />
+            )}
+
+            {step === 4 && (
+              <Step4_ContactSheetQA
+                character={character}
+                clip={activeClip.clip}
+                facing={activeClip.facing}
+                onAdvance={() => handleAdvance(5)}
+                onBack={() => setStep(3)}
+              />
+            )}
+
+            {step === 5 && (
+              <Step5_ExportAtlas
+                character={character}
+                onBack={() => setStep(4)}
+                onRestart={() => {
+                  alert("Sprite Forge Pipeline Complete! Atlas compiled successfully.");
+                  setStep(1);
+                }}
+              />
+            )}
+          </main>
+        </>
+      )}
     </div>
   );
 }

@@ -1,0 +1,12 @@
+{
+ "name": "brute",
+ "dir": "S",
+ "note": "Picks are frame TAGS from the 21-frame Wan clips, chosen on the numbers in prep-clips `report` plus gaitSignals lean: walk alternates lean (+0.090 / +0.015 / -0.082 / -0.036), attack runs windup -> cocked -> swing -> follow-through (the swing is where the bbox jumps 465 -> 498 wide), death is standing -> slump -> down -> settled, skipping the one smeared transition frame (g49840). STUMBLE IS PICKED ON THE BBOX, not the pose: Wan answered `recoiling and stumbling backward` with a raised arm and almost no motion, but the last frames genuinely compress and widen (478x588 -> 482x556 -> 502x546), which is a body absorbing a hit. Braced, knocked back, leaning.",
+ "rows": [
+  { "clip": "idle", "dir": "clip_S_idle", "pick": ["00462", "00476"] },
+  { "clip": "walk", "dir": "clip_S_walk", "pick": ["00449", "00450", "00452", "00454"] },
+  { "clip": "attack", "dir": "clip_S_attack", "pick": ["00478", "00486", "00495", "00497"] },
+  { "clip": "stumble", "dir": "clip_S_stumble", "pick": ["00617", "00621", "00623"] },
+  { "clip": "death", "dir": "clip_S_death", "pick": ["00503", "00505", "00508", "00512"] }
+ ]
+}

@@ -1,0 +1,529 @@
+{
+ "master:S": {
+  "ok": true,
+  "file": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/rotate-S-2026-08-08T20-57-06/qwen_00044_.png",
+  "loraBanner": true,
+  "note": "from E, 90deg. mirror-IoU 0.602/0.592 = a real turn."
+ },
+ "master:N": {
+  "ok": true,
+  "file": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/rotate-N-2026-08-08T21-26-16/qwen_00046_.png",
+  "loraBanner": true,
+  "note": "from the S MASTER, not E. E->N returned a MIRROR (IoU 0.942 vs flipped E); S->N has no flip shortcut, 0.516/0.539 = a real turn."
+ },
+ "E:idle": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-idle4-2026-08-08T21-36-59",
+  "preset": "idle4",
+  "loop": false,
+  "tookS": 449,
+  "motion": "ready",
+  "churnMedian": 2.08,
+  "boxes": 12,
+  "seam": 12.6,
+  "ghost": "ready",
+  "ghostWorst": 0.11,
+  "frozen": false,
+  "fade": "ready",
+  "repaired": true
+ },
+ "S:idle": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-idle4-2026-08-08T21-52-32",
+  "preset": "idle4",
+  "loop": false,
+  "tookS": 597,
+  "motion": "ready",
+  "churnMedian": 6.02,
+  "boxes": 17,
+  "seam": 39.89,
+  "ghost": "ready",
+  "ghostWorst": 0.09,
+  "frozen": false,
+  "fade": "ready",
+  "repaired": true
+ },
+ "S:walk": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-walk4-2026-08-08T22-19-38",
+  "preset": "walk4",
+  "loop": true,
+  "tookS": 537,
+  "motion": "ready",
+  "churnMedian": 22.1,
+  "boxes": 20,
+  "seam": 4.72,
+  "ghost": "ready",
+  "ghostWorst": 0.11,
+  "frozen": false,
+  "fade": "usable",
+  "fadeFlagged": [],
+  "palette": [
+   "#07071e",
+   "#1a172b",
+   "#3b323a",
+   "#6e6c51",
+   "#c0b9a6"
+  ]
+ },
+ "S:run": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-run4-2026-08-08T22-28-40",
+  "preset": "run4",
+  "loop": true,
+  "tookS": 610,
+  "motion": "ready",
+  "churnMedian": 26.88,
+  "boxes": 20,
+  "seam": 5.33,
+  "ghost": "ready",
+  "ghostWorst": 0.11,
+  "frozen": false,
+  "fade": "usable",
+  "fadeFlagged": [],
+  "palette": [
+   "#06051c",
+   "#1a1629",
+   "#3d3439",
+   "#726e53",
+   "#c1bba9"
+  ]
+ },
+ "S:attack": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-attack4-2026-08-08T22-38-54",
+  "preset": "attack4",
+  "loop": false,
+  "tookS": 512,
+  "motion": "ready",
+  "churnMedian": 11.32,
+  "boxes": 20,
+  "seam": 45.1,
+  "ghost": "ready",
+  "ghostWorst": 0.08,
+  "frozen": false,
+  "fade": "usable",
+  "fadeFlagged": [],
+  "palette": [
+   "#05051c",
+   "#181428",
+   "#392f37",
+   "#756751",
+   "#c1b9ad"
+  ]
+ },
+ "S:stumble": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-stumble4-2026-08-08T22-47-30",
+  "preset": "stumble4",
+  "loop": false,
+  "tookS": 439,
+  "motion": "ready",
+  "churnMedian": 11.9,
+  "boxes": 20,
+  "seam": 53.9,
+  "ghost": "ready",
+  "ghostWorst": 0.17,
+  "frozen": false,
+  "fade": "reject",
+  "fadeFlagged": [
+   8,
+   9,
+   10
+  ],
+  "palette": [
+   "#05041c",
+   "#17152a",
+   "#34323e",
+   "#565754",
+   "#b8b3aa"
+  ]
+ },
+ "S:crouch": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-defend4-2026-08-08T22-54-53",
+  "preset": "defend4",
+  "loop": false,
+  "tookS": 578,
+  "motion": "ready",
+  "churnMedian": 16.26,
+  "boxes": 16,
+  "seam": 52.79,
+  "ghost": "ready",
+  "ghostWorst": 0.09,
+  "frozen": false,
+  "fade": "usable",
+  "fadeFlagged": [],
+  "palette": [
+   "#06051d",
+   "#171429",
+   "#393037",
+   "#706b52",
+   "#c3bca3"
+  ]
+ },
+ "S:death": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-death4-2026-08-08T23-04-35",
+  "preset": "death4",
+  "loop": false,
+  "tookS": 691,
+  "motion": "ready",
+  "churnMedian": 23.82,
+  "boxes": 19,
+  "seam": 55.96,
+  "ghost": "ready",
+  "ghostWorst": 0.11,
+  "frozen": false,
+  "fade": "reject",
+  "fadeFlagged": [
+   13,
+   14,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20
+  ],
+  "palette": [
+   "#05041e",
+   "#15142b",
+   "#35333e",
+   "#666855",
+   "#bcb9b3"
+  ]
+ },
+ "N:idle": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-idle4-2026-08-09T00-22-23",
+  "preset": "idle4",
+  "loop": false,
+  "tookS": 451,
+  "motion": "ready",
+  "churnMedian": 5.32,
+  "boxes": 18,
+  "seam": 12.87,
+  "ghost": "ready",
+  "ghostWorst": 0.03,
+  "fade": "ready",
+  "fadeFlagged": [],
+  "palette": [
+   "#050520",
+   "#161831",
+   "#2a2d40",
+   "#404351",
+   "#b4b6bf"
+  ],
+  "fadeWorst": 9.3,
+  "fadeWorstAt": {
+   "drop": 0.09348735311569353,
+   "colour": "#b4b6bf",
+   "frame": 8
+  },
+  "frozen": false
+ },
+ "N:walk": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-walk4-2026-08-09T00-43-08",
+  "preset": "walk4",
+  "loop": true,
+  "tookS": 563,
+  "motion": "ready",
+  "churnMedian": 10.63,
+  "boxes": 20,
+  "seam": 2.02,
+  "ghost": "ready",
+  "ghostWorst": 0.05,
+  "fade": "reject",
+  "fadeFlagged": [
+   4,
+   5
+  ],
+  "palette": [
+   "#060620",
+   "#171930",
+   "#2c2e40",
+   "#434652",
+   "#b5b5bf"
+  ],
+  "fadeWorst": 49,
+  "fadeWorstAt": {
+   "drop": 0.48954191138254816,
+   "colour": "#434652",
+   "frame": 4
+  },
+  "frozen": false
+ },
+ "N:run": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-run4-2026-08-09T00-52-35",
+  "preset": "run4",
+  "loop": true,
+  "tookS": 667,
+  "motion": "usable",
+  "churnMedian": 17.17,
+  "boxes": 20,
+  "seam": 2.03,
+  "ghost": "ready",
+  "ghostWorst": 0.05,
+  "fade": "usable",
+  "fadeFlagged": [],
+  "palette": [
+   "#05051f",
+   "#15162e",
+   "#2a2b3e",
+   "#414451",
+   "#b7b7c0"
+  ],
+  "fadeWorst": 31.8,
+  "fadeWorstAt": {
+   "drop": 0.3184094860052184,
+   "colour": "#414451",
+   "frame": 10
+  },
+  "frozen": false
+ },
+ "N:attack": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-attack4-2026-08-09T01-03-47",
+  "preset": "attack4",
+  "loop": false,
+  "tookS": 611,
+  "motion": "usable",
+  "churnMedian": 11.87,
+  "boxes": 20,
+  "seam": 37.81,
+  "ghost": "ready",
+  "ghostWorst": 0.13,
+  "fade": "reject",
+  "fadeFlagged": [
+   9,
+   10,
+   12,
+   13,
+   14
+  ],
+  "palette": [
+   "#050520",
+   "#161730",
+   "#2c2e41",
+   "#454855",
+   "#b7b8c1"
+  ],
+  "fadeWorst": 63.6,
+  "fadeWorstAt": {
+   "drop": 0.6356137320468134,
+   "colour": "#454855",
+   "frame": 14
+  },
+  "frozen": false
+ },
+ "N:stumble": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-stumble4-2026-08-09T01-14-02",
+  "preset": "stumble4",
+  "loop": false,
+  "tookS": 513,
+  "motion": "usable",
+  "churnMedian": 11.01,
+  "boxes": 21,
+  "seam": 39.73,
+  "ghost": "ready",
+  "ghostWorst": 0.11,
+  "fade": "usable",
+  "fadeFlagged": [],
+  "palette": [
+   "#04041f",
+   "#15162f",
+   "#2a2b3f",
+   "#404351",
+   "#b5b7c0"
+  ],
+  "fadeWorst": 39.2,
+  "fadeWorstAt": {
+   "drop": 0.392382187242512,
+   "colour": "#404351",
+   "frame": 14
+  },
+  "frozen": false
+ },
+ "N:crouch": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-defend4-2026-08-09T01-22-39",
+  "preset": "defend4",
+  "loop": false,
+  "tookS": 450,
+  "motion": "usable",
+  "churnMedian": 6.06,
+  "boxes": 21,
+  "seam": 48.34,
+  "ghost": "ready",
+  "ghostWorst": 0.05,
+  "fade": "ready",
+  "fadeFlagged": [],
+  "palette": [
+   "#040420",
+   "#161731",
+   "#2a2c40",
+   "#3f4250",
+   "#b4b6bf"
+  ],
+  "fadeWorst": 15.3,
+  "fadeWorstAt": {
+   "drop": 0.15345223659808896,
+   "colour": "#161731",
+   "frame": 20
+  },
+  "frozen": false
+ },
+ "N:death": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-death4-2026-08-09T01-30-13",
+  "preset": "death4",
+  "loop": false,
+  "tookS": 438,
+  "motion": "usable",
+  "churnMedian": 9.01,
+  "boxes": 21,
+  "seam": 45.82,
+  "ghost": "ready",
+  "ghostWorst": 0.2,
+  "fade": "usable",
+  "fadeFlagged": [],
+  "palette": [
+   "#04041f",
+   "#161730",
+   "#2c2d40",
+   "#444653",
+   "#b6b7c1"
+  ],
+  "fadeWorst": 32.6,
+  "fadeWorstAt": {
+   "drop": 0.3261973913590181,
+   "colour": "#161730",
+   "frame": 20
+  },
+  "frozen": false
+ },
+ "E:walk": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-walk4-2026-08-09T01-37-35",
+  "preset": "walk4",
+  "loop": true,
+  "tookS": 517,
+  "motion": "ready",
+  "churnMedian": 16.03,
+  "boxes": 21,
+  "seam": 5.49,
+  "ghost": "ready",
+  "ghostWorst": 0.2,
+  "fade": "usable",
+  "fadeFlagged": [],
+  "palette": [
+   "#06051b",
+   "#18162c",
+   "#332e3c",
+   "#655f55",
+   "#bbb3a4"
+  ],
+  "fadeWorst": 37.7,
+  "fadeWorstAt": {
+   "drop": 0.3767668733821485,
+   "colour": "#06051b",
+   "frame": 19
+  },
+  "frozen": false
+ },
+ "E:run": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-run4-2026-08-09T01-46-16",
+  "preset": "run4",
+  "loop": true,
+  "tookS": 588,
+  "motion": "ready",
+  "churnMedian": 14.42,
+  "boxes": 19,
+  "seam": 5.48,
+  "ghost": "ready",
+  "ghostWorst": 0.12,
+  "fade": "reject",
+  "fadeFlagged": [
+   19
+  ],
+  "palette": [
+   "#040318",
+   "#15132a",
+   "#302c3a",
+   "#675f55",
+   "#c0b6a7"
+  ],
+  "fadeWorst": 42.6,
+  "fadeWorstAt": {
+   "drop": 0.4264974939359174,
+   "colour": "#040318",
+   "frame": 19
+  },
+  "frozen": false
+ },
+ "E:attack": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-attack4-2026-08-09T01-56-08",
+  "preset": "attack4",
+  "loop": false,
+  "tookS": 552,
+  "motion": "usable",
+  "churnMedian": 20.61,
+  "boxes": 21,
+  "seam": 48.58,
+  "ghost": "ready",
+  "ghostWorst": 0.14,
+  "fade": "reject",
+  "fadeFlagged": [
+   10
+  ],
+  "palette": [
+   "#08061b",
+   "#17152a",
+   "#322d39",
+   "#6d615c",
+   "#bdb9bb"
+  ],
+  "fadeWorst": 45.6,
+  "fadeWorstAt": {
+   "drop": 0.4562150505510994,
+   "colour": "#322d39",
+   "frame": 10
+  },
+  "frozen": false
+ },
+ "E:stumble": {
+  "ok": true,
+  "dir": "/home/lazycat/github/projects/sun/braindeadbot-client/src/game/pinball-knight/tools/sprite-forge/work/comfy/animate-stumble4-2026-08-09T02-05-24",
+  "preset": "stumble4",
+  "loop": false,
+  "tookS": 550,
+  "motion": "usable",
+  "churnMedian": 12.91,
+  "boxes": 21,
+  "seam": 48.76,
+  "ghost": "ready",
+  "ghostWorst": 0.22,
+  "fade": "usable",
+  "fadeFlagged": [],
+  "palette": [
+   "#06051a",
+   "#15132a",
+   "#2e2a39",
+   "#716562",
+   "#bfbbbd"
+  ],
+  "fadeWorst": 26.3,
+  "fadeWorstAt": {
+   "drop": 0.2626116986765807,
+   "colour": "#bfbbbd",
+   "frame": 2
+  },
+  "frozen": false
+ }
+}

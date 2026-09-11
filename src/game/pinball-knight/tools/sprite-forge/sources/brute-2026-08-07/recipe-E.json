@@ -1,0 +1,12 @@
+{
+ "name": "brute",
+ "dir": "E",
+ "note": "IDLE COMES FROM THE WALK CLIP. The E idle generation died to a RAM-guard strike and its job dir is empty; the walk's near-zero-lean frames (00385 +0.030, 00387 -0.016) are the pass pose, which is what standing looks like — the same substitution prep-brute.mjs made deliberately on 08-06. Walk alternates +0.129 / +0.030 / -0.100 / -0.006. Attack is a progressive lunge (lean 0 -> -0.278) at constant height, so the narrowing bbox is the arm tucking in, not the figure receding. STUMBLE STOPS AT FRAME 8: from 00633 on the figure is 305px tall against 566 standing — the model dropped it into a crouch and kept it there, which is a death, not a stagger, and at one scale for the whole sheet it would read as the brute shrinking. The three kept frames compress 562 -> 555 -> 531, a body absorbing a hit.",
+ "rows": [
+  { "clip": "idle", "dir": "clip_E_idle", "pick": ["00385", "00387"] },
+  { "clip": "walk", "dir": "clip_E_walk", "pick": ["00381", "00385", "00392", "00388"] },
+  { "clip": "attack", "dir": "clip_E_attack", "pick": ["00397", "00400", "00404", "00407"] },
+  { "clip": "stumble", "dir": "clip_E_stumble", "pick": ["00629", "00630", "00631"] },
+  { "clip": "death", "dir": "clip_E_death", "pick": ["00419", "00421", "00424", "00428"] }
+ ]
+}

@@ -1,0 +1,9 @@
+{
+ "rows": [
+  "idle",
+  "walk",
+  "attack",
+  "death"
+ ],
+ "scale": 1.55
+}

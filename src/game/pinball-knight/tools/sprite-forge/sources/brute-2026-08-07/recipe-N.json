@@ -1,0 +1,12 @@
+{
+ "name": "brute",
+ "dir": "N",
+ "note": "The back view's lean never crosses zero (-0.014 .. -0.077 across all 21 walk frames): from behind, the legs are inside the silhouette and there is no alternation for gaitSignals to see. The walk row is therefore picked as a sway out and back rather than a left/right cycle. Attack is ordered coil -> wind -> STRIKE -> recover, not by frame number: the strike (00565, bbox 517 wide against 411 coiled) happens early in the clip and the settle follows it. Stumble is the cleanest of the three: the body really does absorb, 582 -> 544 -> 488 tall over three frames.",
+ "rows": [
+  { "clip": "idle", "dir": "clip_N_idle", "pick": ["00549", "00558"] },
+  { "clip": "walk", "dir": "clip_N_walk", "pick": ["00532", "00534", "00536", "00538"] },
+  { "clip": "attack", "dir": "clip_N_attack", "pick": ["00570", "00574", "00565", "00566"] },
+  { "clip": "stumble", "dir": "clip_N_stumble", "pick": ["00650", "00652", "00654"] },
+  { "clip": "death", "dir": "clip_N_death", "pick": ["00587", "00588", "00592", "00596"] }
+ ]
+}
