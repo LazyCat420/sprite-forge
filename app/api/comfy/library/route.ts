@@ -193,7 +193,6 @@ function buildCharacters(project: string): Character[] {
 }
 
 export async function GET(req: Request) {
-  if (!backendPresent()) return NextResponse.json({ error: "no backend on this machine" }, { status: 404 });
   const url = new URL(req.url);
   const projects = listProjects();
   const settings = loadSettings() as any;

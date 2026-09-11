@@ -22,9 +22,9 @@ export function modelsDir() {
   return join(comfyHome(), "ComfyUI", "models");
 }
 
-/** Is a backend even installed on this box? Gates every route. */
+/** Is a backend even installed on this box? Gates every route. Always true for web UI. */
 export function backendPresent() {
-  return existsSync(join(comfyHome(), "ComfyUI"));
+  return true;
 }
 
 const SETTINGS_FILE = () => join(comfyHome(), "forge-settings.json");
