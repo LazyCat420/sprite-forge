@@ -7,4 +7,4 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 IMAGE_NAME="sprite-forge"
 DISPLAY_NAME="⚡ Sprite Forge Studio"
 
-source "${SCRIPT_DIR}/../deploy-kit/lib.sh"
+source "${SCRIPT_DIR}/../../../deploy-kit/lib.sh"
